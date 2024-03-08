@@ -139,32 +139,51 @@ def _pre_run(output_dir: str) -> None:
 def _run(output_dir: str) -> None:
     subprocess.run(['vvp', output_dir+'/design.cmp'])
 
+# wave:
+def _wave(output_dir: str) -> None:
+    found_vcd = False
+    for child in Path(output_dir):
+        if child.is_file() and child.suffix=='.vcd':
+            if found_vcd:
+                print('More than one .vcd file in folder, took the first ignored the rest')
+            else:
+                found_vcd = True
+                vcd_path = child
+    subprocess.run(['gtkwave', str(vcd_path), '&'])
+
 # mkdir:
 def _mkdir(output_dir: str) -> None:
     if not Path(output_dir).is_dir():
         Path(output_dir).mkdir()
 
 # parse flags:
-def parse_args():
+def _parse_args():
     parser = argparse.ArgumentParser(description='sim')
     parser.add_argument('-c', '--cfg', type=str, action='store', dest='c', help='Path to configuration file')
     parser.add_argument('-v', '--view', type=str, action='store', dest='v', help='Desired view')
     parser.add_argument('-o', '--out', type=str, action='store', dest='o', help='Output directory')
+    parser.add_argument('--pre-run', action='store_true', dest='p', help='Perform pre-run')
+    parser.add_argument('--run', action='store_true', dest='r', help='Perform run')
+    parser.add_argument('--waves', action='store_true', dest='w', help='Create waves')
     args = parser.parse_args()
-    if not len(sys.argv)==7:
+    if not len(sys.argv)==10:
         print(len(sys.argv))
         parser.print_help()
         exit(2)
     else:
-        return args.c, args.v, args.o
+        return args.c, args.v, args.o, args.p, args.r, args.w 
 
 # sim main function:
 def main() -> None:
-    cfg_path, view, output_dir = parse_args()
+    cfg_path, view, output_dir, pre_run, run, waves = _parse_args()
     _mkdir(output_dir)
     _get_list(cfg_path, view, output_dir)
-    _pre_run(output_dir)
-    _run(output_dir)
+    if pre_run:
+        _pre_run(output_dir)
+    if run:
+        _run(output_dir)
+    if waves:
+        _wave(output_dir)
 
 if __name__ == '__main__':
     main()

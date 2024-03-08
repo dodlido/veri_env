@@ -133,7 +133,7 @@ def _get_list(cfg_path: str, view: str, output_dir: str) -> None:
 
 # pre-run:
 def _pre_run(output_dir: str) -> None:
-    subprocess.run(['iverilog', '-o', output_dir+'/design.cmp', '-c', output_dir+'/design.fl'])
+    subprocess.run(['iverilog', '-o', output_dir+'/design.cmp', '-c', output_dir+'/design.fl', '-g2005-sv'])
 
 # run:
 def _run(output_dir: str) -> None:
@@ -142,14 +142,17 @@ def _run(output_dir: str) -> None:
 # wave:
 def _wave(output_dir: str) -> None:
     found_vcd = False
-    for child in Path(output_dir):
+    for child in Path(output_dir).iterdir():
         if child.is_file() and child.suffix=='.vcd':
             if found_vcd:
                 print('More than one .vcd file in folder, took the first ignored the rest')
             else:
                 found_vcd = True
                 vcd_path = child
-    subprocess.run(['gtkwave', str(vcd_path), '&'])
+    if found_vcd:
+        subprocess.run(['gtkwave', str(vcd_path), '&'])
+    else:
+        print('No vcd files found')
 
 # mkdir:
 def _mkdir(output_dir: str) -> None:
@@ -168,6 +171,7 @@ def _parse_args():
     args = parser.parse_args()
     if not len(sys.argv)==10:
         print(len(sys.argv))
+        print(sys.argv)
         parser.print_help()
         exit(2)
     else:

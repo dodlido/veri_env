@@ -162,14 +162,14 @@ def _mkdir(output_dir: str) -> None:
 # parse flags:
 def _parse_args():
     parser = argparse.ArgumentParser(description='sim')
-    parser.add_argument('-c', '--cfg', type=str, action='store', dest='c', help='Path to configuration file')
-    parser.add_argument('-v', '--view', type=str, action='store', dest='v', help='Desired view')
-    parser.add_argument('-o', '--out', type=str, action='store', dest='o', help='Output directory')
+    parser.add_argument('-c', '--cfg', type=str, action='store', dest='c', help='Path to configuration file', required=True)
+    parser.add_argument('-v', '--view', type=str, action='store', dest='v', help='Desired view', required=True)
+    parser.add_argument('-o', '--out', type=str, action='store', dest='o', help='Output directory', required=True)
     parser.add_argument('--pre-run', action='store_true', dest='p', help='Perform pre-run')
     parser.add_argument('--run', action='store_true', dest='r', help='Perform run')
     parser.add_argument('--waves', action='store_true', dest='w', help='Create waves')
     args = parser.parse_args()
-    if not len(sys.argv)==10:
+    if len(sys.argv)==0:
         print(len(sys.argv))
         print(sys.argv)
         parser.print_help()

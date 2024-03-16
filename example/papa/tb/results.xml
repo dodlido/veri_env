@@ -1,0 +1,6 @@
+<testsuites name="results">
+  <testsuite name="all" package="all">
+    <property name="random_seed" value="1710624258" />
+    <testcase name="my_test" classname="m1_tb" file="c:\Users\User1\veri_env\example\papa\tb\m1_tb.py" lineno="5" time="0.002508878707885742" sim_time_ns="9.001" ratio_time="3587.658491304761" />
+  </testsuite>
+</testsuites>

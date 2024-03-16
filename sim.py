@@ -4,6 +4,7 @@ import configparser
 import subprocess
 import argparse
 import sys
+import os
 
 # Get home location
 def _get_home(cfg_path: str) -> Path:
@@ -115,6 +116,33 @@ def _parse_cfg_rec(path: Path, view: str, file_list: List[Path] = []) -> List[Pa
             file_list += _get_files(cfg, view, path)
         return file_list
 
+# Find top level module name for a specific view:
+def _get_top_level(cfg_path: str, view: str):
+    if not Path(cfg_path).is_file():
+        print('Error, this is not a valid path to a cfg file')
+        exit(2)
+    else:
+        cfg = configparser.ConfigParser()
+        cfg.read(cfg_path)
+        if view not in cfg:
+            print('Error: view not found in cfg file')
+            exit(2)
+        else:
+            if 'design' not in cfg[view]:
+                print('Error: design not found in given view')
+                exit(2)
+            else:
+                design_content = cfg[view]['design'].split('\n')
+                for line in design_content:
+                    line.replace(' ', '')
+                    if 'top' not in line:
+                        continue
+                    elif '=' not in line:
+                        print('Error: Top level module not defined')
+                        exit(2)
+                    else:
+                        return line.split('=')[1]
+
 # Generates a .fl file list in the desired location
 def _gen_fl(fl_dir: str, file_list: List[Path]) -> None:
     if not Path(fl_dir).is_dir():
@@ -126,18 +154,88 @@ def _gen_fl(fl_dir: str, file_list: List[Path]) -> None:
             for file in file_list:
                 fl.write(str(file)+'\n')
 
+# Generates a makefile
+def _make_make(out_dir: str, top_level_name: str) -> None:
+    fl_path = Path(out_dir) / Path('design.fl')
+    make_path = Path(out_dir) / Path('makefile')
+    if not fl_path.is_file():
+        print('Error: File list not found')
+        exit(2)
+    else:
+        with open(fl_path, 'r') as fl:
+            fl_list = fl.readlines()
+        with open(make_path, 'w') as makefile:
+            makefile.write('# Makefile\n\n# Defaults\n')
+            makefile.write('SIM ?= icarus\n')
+            makefile.write('TOPLEVEL_LANG ?= verilog\n\n')
+            for file in fl_list:
+                file_str = str(Path(file.rstrip()).as_posix())
+                makefile.write('VERILOG_SOURCES += ' + file_str + '\n')
+            makefile.write('\nTOPLEVEL = ' + top_level_name + '\n\n')
+            makefile.write('MODULE = ' + top_level_name + '_tb\n\n')
+            makefile.write('include $(shell cocotb-config --makefiles)/Makefile.sim')
+
+# Generates a generic testbench
+def _gen_tb(out_dir: str, top_level_name: str) -> None:
+    tb_path = Path(out_dir) / Path(top_level_name + '_tb.py') 
+    with open(tb_path, 'w') as tb_file:
+        tb_file.write('import cocotb\nfrom cocotb.triggers import FallingEdge, Timer, RisingEdge\nfrom cocotb.clock import Clock\n\n')
+        tb_file.write('@cocotb.test()\nasync def my_test(dut):\n   cocotb.start_soon(Clock(dut.clk, 1, units="ns").start())\n')
+        tb_file.write('   for _ in range(10):\n      await RisingEdge(dut.clk)') # Placeholder
+
+# Add 'dump vcd file' section in design:
+def _add_dump_vcd(out_dir: str, top_level_name: str) -> None:
+    fl_path = Path(out_dir) / Path('design.fl')
+    with open(fl_path, 'r') as file_list:
+        for line in file_list:
+            if top_level_name in line:
+                top_level_path = Path(line.rstrip())
+    if not top_level_path.is_file():
+        print('Error: Top level module path not found')
+        exit(2)
+    else:
+        with open(top_level_path, 'r') as design:
+            old = design.readlines() 
+        with open(top_level_path, 'w') as design:
+            for line in old:
+                if 'endmodule' in line:
+                    break
+                else:
+                    design.write(line)
+            design.write('\ninitial begin\n   $dumpfile(\"dump.vcd\");\n   $dumpvars(1, ' + top_level_name + ');\nend\n\nendmodule') 
+
+# Remove 'dump vcd file' section in design:
+def _rem_dump_vcd(out_dir: str, top_level_name: str) -> None:
+    fl_path = Path(out_dir) / Path('design.fl')
+    with open(fl_path, 'r') as file_list:
+        for line in file_list:
+            if top_level_name in line:
+                top_level_path = Path(line.rstrip())
+    if not top_level_path.is_file():
+        print('Error: Top level module path not found')
+        exit(2)
+    else:
+        with open(top_level_path, 'r') as design:
+            old = design.readlines() 
+        with open(top_level_path, 'w') as design:
+            for line in old:
+                if 'initial begin' in line:
+                    break
+                else:
+                    design.write(line)
+            design.write('\nendmodule')
+
 # Generates a file list
 def _get_list(cfg_path: str, view: str, output_dir: str) -> None:
     file_list = list(set(_parse_cfg_rec(cfg_path, view)))
     _gen_fl(output_dir, file_list)
 
-# pre-run:
-def _pre_run(output_dir: str) -> None:
-    subprocess.run(['iverilog', '-o', output_dir+'/design.cmp', '-c', output_dir+'/design.fl', '-g2005-sv'])
-
-# run:
-def _run(output_dir: str) -> None:
-    subprocess.run(['vvp', output_dir+'/design.cmp'])
+# Run make command on shell
+def _run_make(output_dir: str) -> None:
+    current_dir = os.getcwd()
+    os.chdir(output_dir)
+    subprocess.run(['make'], shell=True)
+    os.chdir(current_dir)
 
 # wave:
 def _wave(output_dir: str) -> None:
@@ -149,8 +247,9 @@ def _wave(output_dir: str) -> None:
             else:
                 found_vcd = True
                 vcd_path = child
+                print(vcd_path)
     if found_vcd:
-        subprocess.run(['gtkwave', str(vcd_path), '&'])
+        subprocess.run(['gtkwave', vcd_path, '&'])
     else:
         print('No vcd files found')
 
@@ -182,12 +281,14 @@ def main() -> None:
     cfg_path, view, output_dir, pre_run, run, waves = _parse_args()
     _mkdir(output_dir)
     _get_list(cfg_path, view, output_dir)
-    if pre_run:
-        _pre_run(output_dir)
-    if run:
-        _run(output_dir)
+    top_level_name = _get_top_level(cfg_path, view)
+    _make_make(output_dir, top_level_name)
+    _gen_tb(output_dir, top_level_name)
+    _add_dump_vcd(output_dir, top_level_name)
+    _run_make(output_dir)
     if waves:
         _wave(output_dir)
+    _rem_dump_vcd(output_dir, top_level_name)
 
 if __name__ == '__main__':
     main()

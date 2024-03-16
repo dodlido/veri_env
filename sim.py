@@ -264,8 +264,6 @@ def _parse_args():
     parser.add_argument('-c', '--cfg', type=str, action='store', dest='c', help='Path to configuration file', required=True)
     parser.add_argument('-v', '--view', type=str, action='store', dest='v', help='Desired view', required=True)
     parser.add_argument('-o', '--out', type=str, action='store', dest='o', help='Output directory', required=True)
-    parser.add_argument('--pre-run', action='store_true', dest='p', help='Perform pre-run')
-    parser.add_argument('--run', action='store_true', dest='r', help='Perform run')
     parser.add_argument('--waves', action='store_true', dest='w', help='Create waves')
     args = parser.parse_args()
     if len(sys.argv)==0:
@@ -274,11 +272,11 @@ def _parse_args():
         parser.print_help()
         exit(2)
     else:
-        return args.c, args.v, args.o, args.p, args.r, args.w 
+        return args.c, args.v, args.o, args.w 
 
 # sim main function:
 def main() -> None:
-    cfg_path, view, output_dir, pre_run, run, waves = _parse_args()
+    cfg_path, view, output_dir, waves = _parse_args()
     _mkdir(output_dir)
     _get_list(cfg_path, view, output_dir)
     top_level_name = _get_top_level(cfg_path, view)

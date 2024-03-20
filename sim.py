@@ -202,7 +202,7 @@ def _add_dump_vcd(out_dir: str, top_level_name: str) -> None:
                     break
                 else:
                     design.write(line)
-            design.write('\ninitial begin\n   $dumpfile(\"dump.vcd\");\n   $dumpvars(1, ' + top_level_name + ');\nend\n\nendmodule') 
+            design.write('\ninitial begin\n   $dumpfile(\"dump.vcd\");\n   $dumpvars(1, ' + top_level_name + ');\nend\nendmodule') 
 
 # Remove 'dump vcd file' section in design:
 def _rem_dump_vcd(out_dir: str, top_level_name: str) -> None:
@@ -223,11 +223,14 @@ def _rem_dump_vcd(out_dir: str, top_level_name: str) -> None:
                     break
                 else:
                     design.write(line)
-            design.write('\nendmodule')
+            design.write('endmodule')
 
 # Generates a file list
 def _get_list(cfg_path: str, view: str, output_dir: str) -> None:
-    file_list = list(set(_parse_cfg_rec(cfg_path, view)))
+    file_list = _parse_cfg_rec(cfg_path, view)
+    for i in range(len(file_list)):
+        file_list[i] = file_list[i].resolve()
+    file_list = list(set(file_list))
     _gen_fl(output_dir, file_list)
 
 # Run make command on shell

@@ -12,16 +12,28 @@ def _err(m: str) -> None:
     exit(2)
 
 # Build child path 
-def _get_child_cfg_path(ws_path: Path, child_name: str, child_type: str) -> Path:
-    cfg_name = child_name.split('/')[-1] + '.cfg'
+def _get_child_cfg_path(ws_path: Path, child_name: str, child_type: str, papa_cfg_path: Path) -> Path:
+    blk_name = child_name.split('/')[-1]
+    repo_name = child_name.split('/')[0]
+    print(blk_name)
     if child_type=='local':
-        cfg_path = ws_path / Path(child_name) / Path('misc') / Path(cfg_name)
-        if not cfg_path.is_file():
-            _err('.cfg file not found in path: ' + str(cfg_path))
+        cfg_path = ws_path / Path(child_name) / Path('misc') / Path(blk_name + '.cfg')
+    elif child_type=='project':
+        cfg_path = papa_cfg_path.parent.parent.parent / Path(blk_name) / Path('misc') / Path(blk_name + '.cfg')
+    elif 'release' in child_type:
+        if ',' not in child_type:
+            _err('Syntax error in ' + child_type + 'provide release version in a \'release, x.y.z\' format')
+            if len(child_type.split(','))!=2:
+                _err('Syntax error in ' + child_type + 'provide release version in a \'release, x.y.z\' format')
         else:
-            return cfg_path
+            version = child_type.split(',')[-1].replace(' ', '')
+            cfg_path = Path('D:/veri_strg') / Path(repo_name) / Path('v' + version) / Path('design') / Path(blk_name) / Path('misc') / Path(blk_name + '.cfg')
     else:
-        _err('not supported yet')
+        _err(child_type + ' not supported yet')
+    if not cfg_path.is_file():
+            _err('.cfg file not found in path: ' + str(cfg_path))
+    else:
+        return cfg_path
 
 # Parses 'path' section and returns names and paths of valid childs
 def _get_paths(ws_path: Path, config: configparser, cfg_path: Path) -> Tuple[List[str], List[Path]]:
@@ -29,7 +41,7 @@ def _get_paths(ws_path: Path, config: configparser, cfg_path: Path) -> Tuple[Lis
     if 'path' in config:
         for child_name in config['path']:
             child_type = config['path'].get(child_name)
-            paths.append(_get_child_cfg_path(ws_path, child_name, child_type))
+            paths.append(_get_child_cfg_path(ws_path, child_name, child_type, cfg_path))
             names.append(child_name)
     return names, paths
         
@@ -285,7 +297,6 @@ def _parse_args():
 def main() -> None:
     ws_path, cfg_path, view, waves = _parse_args()
     output_dir = _create_output_dir(ws_path, cfg_path)
-    print(output_dir)
     _get_list(ws_path, cfg_path, view, output_dir)
     top_level_name = _get_top_level(cfg_path, view)
     _make_make(output_dir, top_level_name)

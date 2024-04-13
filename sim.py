@@ -15,7 +15,6 @@ def _err(m: str) -> None:
 def _get_child_cfg_path(ws_path: Path, child_name: str, child_type: str, papa_cfg_path: Path) -> Path:
     blk_name = child_name.split('/')[-1]
     repo_name = child_name.split('/')[0]
-    print(blk_name)
     if child_type=='local':
         cfg_path = ws_path / Path(child_name) / Path('misc') / Path(blk_name + '.cfg')
     elif child_type=='project':

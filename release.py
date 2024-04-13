@@ -32,8 +32,10 @@ def get_new_tag(release_type: str) -> str:
         new_tag[2] += 1
     elif release_type=='major':
         new_tag[0] += 1
+        new_tag[1], new_tag[2] = 0, 0
     else:
         new_tag[1] += 1
+        new_tag[2] = 0 
     return 'v' + str(new_tag[0]) + '.' + str(new_tag[1]) + '.' + str(new_tag[2])
 
 def get_repo_name() -> str:

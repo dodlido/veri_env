@@ -8,6 +8,7 @@ import os
 import git
 from datetime import datetime
 
+
 def parse_args():
     parser = argparse.ArgumentParser(description='release')
     parser.add_argument('-m', '--message', type=str, action='store', dest='m', help='Release message', required=False)

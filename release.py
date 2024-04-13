@@ -45,17 +45,19 @@ def get_repo_name() -> str:
 def update_footers(new_tag: str) -> None:
     new_footer = compose_footer(get_repo_name(), new_tag)
     repo = git.Repo(search_parent_directories=True)
-    for file in os.listdir(repo.working_tree_dir):
-        filename = os.fsdecode(file)
-        if filename.endswith(".v"):
-            remove_footer(os.path.join(repo.working_tree_dir, filename))
-            add_footer(os.path.join(repo.working_tree_dir, filename), new_footer)
+    source_filelist = Path(repo.working_tree_dir).rglob('*.v')
+    for file in source_filelist:
+        remove_footer(file)
+        add_footer(file, new_footer)
+        # filename = os.fsdecode(file)
+        # if filename.endswith(".v"):
+        #     remove_footer(os.path.join(repo.working_tree_dir, filename))
+        #     add_footer(os.path.join(repo.working_tree_dir, filename), new_footer)
 
 def gen_footer_line(lhs: str, rhs: str, border: bool=False, empty: bool=False) -> str:
     len_lhs, len_rhs = 15, 35
     len_tot = len_lhs + len_rhs
     start_key, end_key = '//|', '|//'
-    # line = start_key + lhs.ljust(len_lhs-len(lhs)-1, ' ') + ':' + rhs.ljust(len_rhs-len(rhs), ' ') + end_key + '\n'
     line = start_key + lhs.ljust(len_lhs - 2, ' ') + ':' + ('  ' + rhs).ljust(len_rhs - 2, ' ') + end_key + '\n'
     border_line = start_key.ljust(len_tot, '~') + end_key + '\n'
     empty_line = start_key.ljust(len_tot, ' ') + end_key + '\n'

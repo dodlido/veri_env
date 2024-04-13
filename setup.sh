@@ -7,6 +7,6 @@ read WS_PATH
 PATH=/c/Users/User1/Notepad++:$PATH
 PATH=/c/iverilog/bin:$PATH
 PATH=/c/iverilog/gtkwave/bin:$PATH
-python /c/Users/User1/veri_env/setup.py -w $WS_PATH	  
+python $TOOLS_PATH/setup.py -w $WS_PATH	  
 cd $WS_PATH
 echo "All set!" 

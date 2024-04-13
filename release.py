@@ -49,10 +49,6 @@ def update_footers(new_tag: str) -> None:
     for file in source_filelist:
         remove_footer(file)
         add_footer(file, new_footer)
-        # filename = os.fsdecode(file)
-        # if filename.endswith(".v"):
-        #     remove_footer(os.path.join(repo.working_tree_dir, filename))
-        #     add_footer(os.path.join(repo.working_tree_dir, filename), new_footer)
 
 def gen_footer_line(lhs: str, rhs: str, border: bool=False, empty: bool=False) -> str:
     len_lhs, len_rhs = 15, 35

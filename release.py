@@ -101,10 +101,9 @@ def add_footer(source_path: Path, new_footer: str) -> None:
 def add_commit_push_n_tag(new_tag: str, message: str) -> None:
     repo = git.Repo(search_parent_directories=True)
     repo.create_tag(new_tag, message=message)
-    for file in os.listdir(repo.working_tree_dir):
-        filename = os.fsdecode(file)
-        if filename.endswith(".v"):
-            repo.index.add([os.path.join(repo.working_tree_dir, filename)])
+    source_filelist = Path(repo.working_tree_dir).rglob('*.v')
+    for file in source_filelist:
+        repo.index.add([file])
     repo.index.commit('Release pipe footers update')
     if message==None:
         message = 'Release ' + new_tag

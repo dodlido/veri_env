@@ -1,6 +1,3 @@
-
-Test commit 
-
 # veri_env
 An easy-to-use environment for compilation and simulation of verilog projects
 

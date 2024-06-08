@@ -40,7 +40,7 @@ def get_new_tag(release_type: str) -> str:
 
 def get_repo_name() -> str:
     repo = git.Repo(search_parent_directories=True)
-    return  repo.working_tree_dir.split("\\")[-1]
+    return  repo.working_tree_dir.split("/")[-1]
 
 def update_footers(new_tag: str) -> None:
     new_footer = compose_footer(get_repo_name(), new_tag)
@@ -113,7 +113,7 @@ def add_commit_push_n_tag(new_tag: str, message: str) -> None:
     return
 
 def store(new_tag: str) -> None:
-    storage_base_path = Path('D:/veri_strg')
+    storage_base_path = Path('/home/etay-sela/design/veri_strg')
     repo_name = get_repo_name()
     repo_path = storage_base_path / Path(repo_name)
     dest_path = repo_path / Path(new_tag)

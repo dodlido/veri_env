@@ -26,7 +26,7 @@ def _get_child_cfg_path(ws_path: Path, child_name: str, child_type: str, papa_cf
                 _err('Syntax error in ' + child_type + 'provide release version in a \'release, x.y.z\' format')
         else:
             version = child_type.split(',')[-1].replace(' ', '')
-            cfg_path = Path('D:/veri_strg') / Path(repo_name) / Path('v' + version) / Path('design') / Path(blk_name) / Path('misc') / Path(blk_name + '.cfg')
+            cfg_path = Path('/home/etay-sela/design/veri_strg') / Path(repo_name) / Path('v' + version) / Path('design') / Path(blk_name) / Path('misc') / Path(blk_name + '.cfg')
     else:
         _err(child_type + ' not supported yet')
     if not cfg_path.is_file():
@@ -238,9 +238,11 @@ def _wave(output_dir: str) -> None:
 
 # mkdir:
 def _create_output_dir(ws_path: Path, cfg_path: Path) -> None:
-    blk_name = str(cfg_path.parent.parent).split('\\')[-1]
-    repo_name = str(cfg_path.parent.parent.parent.parent).split('\\')[-1]
-    output_dir = ws_path / Path('sim') / repo_name / blk_name
+    blk_name = str(cfg_path.parent.parent).split('/')[-1]
+    repo_name = str(cfg_path.parent.parent.parent.parent).split('/')[-1]
+    ws_name = str(ws_path).split('/')[-1]
+    output_dir = Path('/home/etay-sela/design/veri_work') / ws_name / repo_name / blk_name
+    # output_dir = ws_path / Path('sim') / repo_name / blk_name
     output_dir.mkdir(parents=True, exist_ok=True) # Create output directory if needed
     return output_dir
 
@@ -259,11 +261,11 @@ def _parse_args():
         exit(2)
     else:
         if not args.ws:
-            if 'work' not in str(Path.cwd()):
-                _err('Workspace not provided and not under work directory')
+            if 'home' not in str(Path.cwd()):
+                _err('Workspace not provided and not under home directory')
             else:
                 p = Path.cwd().absolute()
-                while (str(p.parent)).split('\\')[-1] != 'work':
+                while (str(p.parent)).split('/')[-1] != 'veri_home':
                     p = p.parent
                 ws_path = p
         else:
@@ -272,11 +274,11 @@ def _parse_args():
                 _err('Workspace dir is invalid')
         if not args.c:
             cfg_dir, cfg_path = None, None
-            if str(Path.cwd()).split('\\')[-1]=='misc':
+            if str(Path.cwd()).split('/')[-1]=='misc':
                 cfg_dir = Path.cwd()
             else:
                 for sub in os.walk(Path.cwd()):
-                    if sub[0].split('\\')[-1]=='misc':
+                    if sub[0].split('/')[-1]=='misc':
                         cfg_dir = Path.cwd() / Path('misc')
             if not cfg_dir:
                 _err('misc directory not found')

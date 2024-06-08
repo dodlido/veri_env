@@ -1,6 +1,7 @@
 #!/bin/bash
 
-ws_parent='/home/etay-sela/design/veri_home'
+home_route='/home/etay-sela/design/veri_home'
+work_route='/home/etay-sela/design/veri_work'
 ws_name=''
 ws_path=''
 
@@ -28,16 +29,21 @@ case "$1" in
         fi
 
         # Create the full directory path
-        full_path="$ws_parent/$2"
+        home_path="$home_route/$2"
+	work_path="$work_route/$2"
 
-        # Create the directory if it doesn't exist
-        if [ ! -d "$full_path" ]; then
-            mkdir -p "$full_path" || { echo "Error: Unable to create directory '$full_path'."; return 1; }
-            echo "Created directory: $full_path"
+        # Create directories if it doesn't exist
+        if [ ! -d "$home_path" ]; then
+            mkdir -p "$home_path" || { echo "Error: Unable to create directory '$home_path'."; return 1; }
+            echo "Created directory: $home_path"
+        fi
+	if [ ! -d "$work_path" ]; then
+            mkdir -p "$work_path" || { echo "Error: Unable to create directory '$work_path'."; return 1; }
+            echo "Created directory: $work_path"
         fi
 
         # Change the current working directory
-        cd "$full_path" || { echo "Error: Unable to change directory to '$full_path'."; return 1; }
+        cd "$home_path" || { echo "Error: Unable to change directory to '$home_path'."; return 1; }
 
         # Print the new working directory
         echo "Changed working directory to: $(pwd)"
@@ -49,6 +55,9 @@ case "$1" in
         # Set tools
         alias sim='python3 /home/etay-sela/design/veri_env/sim.py'
         alias release='python3 /home/etay-sela/design/veri_env/release.py'
+
+	# Activate python vitual env
+	source ~/design/veri_env/py_venv/bin/activate
         ;;
     h)
         print_usage

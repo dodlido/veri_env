@@ -53,13 +53,15 @@ case "$1" in
         echo "SSH key added to agent"
 
         # Set tools
-        alias sim='python3 /home/etay-sela/design/veri_strg/veri_env/v0.9.0/sim.py'
-        alias release='python3 /home/etay-sela/design/veri_strg/veri_env/v0.9.0/release.py'
-        alias get='python3 /home/etay-sela/design/veri_strg/veri_env/v0.9.0/get.py -dw $home_path'
-        alias add='python3 /home/etay-sela/design/veri_strg/veri_env/v0.9.0/add.py'
+        export tools_path=/home/etay-sela/design/veri_strg/veri_env/v0.10.0/
+        export PATH=$PATH:${tools_path}py_venv/bin
+        alias sim='${tools_path}py_venv/bin/python3 ${tools_path}sim.py'
+        alias release='${tools_path}py_venv/bin/python3 ${tools_path}release.py'
+        alias get='${tools_path}py_venv/bin/python3 ${tools_path}get.py -dw $home_path'
+        alias add='${tools_path}py_venv/bin/python3 ${tools_path}add.py'
 
 	# Activate python vitual env
-	source ~/design/veri_env/py_venv/bin/activate
+	source ${tools_path}py_venv/bin/activate
         ;;
     h)
         print_usage

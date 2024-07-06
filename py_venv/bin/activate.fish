@@ -33,7 +33,7 @@ end
 # Unset irrelevant variables.
 deactivate nondestructive
 
-set -gx VIRTUAL_ENV "/home/etay-sela/design/veri_env/py_venv"
+set -gx VIRTUAL_ENV "/home/etay-sela/design/veri_home/cad/veri_env/py_venv"
 
 set -gx _OLD_VIRTUAL_PATH $PATH
 set -gx PATH "$VIRTUAL_ENV/bin" $PATH

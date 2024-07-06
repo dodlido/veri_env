@@ -53,7 +53,7 @@ case "$1" in
         echo "SSH key added to agent"
 
         # Set tools
-        export tools_path=/home/etay-sela/design/veri_strg/veri_env/v0.10.0/
+        export tools_path=/home/etay-sela/design/veri_strg/veri_env/v0.11.0/
         export PATH=$PATH:${tools_path}py_venv/bin
         alias sim='${tools_path}py_venv/bin/python3 ${tools_path}sim.py'
         alias release='${tools_path}py_venv/bin/python3 ${tools_path}release.py'

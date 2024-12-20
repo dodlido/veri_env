@@ -160,10 +160,13 @@ def _make_make(out_dir: str, top_level_name: str) -> None:
 # Generates a generic testbench
 def _gen_tb(out_dir: str, top_level_name: str) -> None:
     tb_path = Path(out_dir) / Path(top_level_name + '_tb.py') 
-    with open(tb_path, 'w') as tb_file:
-        tb_file.write('import cocotb\nfrom cocotb.triggers import FallingEdge, Timer, RisingEdge\nfrom cocotb.clock import Clock\n\n')
-        tb_file.write('@cocotb.test()\nasync def my_test(dut):\n   cocotb.start_soon(Clock(dut.clk, 1, units="ns").start())\n')
-        tb_file.write('   for _ in range(10):\n      await RisingEdge(dut.clk)') # Placeholder
+    if tb_path.is_file():
+        print('Note: Found existing testbench in workspace, did not generate an automatic one')
+    else:
+        with open(tb_path, 'w') as tb_file:
+            tb_file.write('import cocotb\nfrom cocotb.triggers import FallingEdge, Timer, RisingEdge\nfrom cocotb.clock import Clock\n\n')
+            tb_file.write('@cocotb.test()\nasync def my_test(dut):\n   cocotb.start_soon(Clock(dut.clk, 1, units="ns").start())\n')
+            tb_file.write('   for _ in range(10):\n      await RisingEdge(dut.clk)') # Placeholder
 
 # Add 'dump vcd file' section in design:
 def _add_dump_vcd(out_dir: str, top_level_name: str) -> None:

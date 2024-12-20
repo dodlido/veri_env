@@ -11,11 +11,14 @@ An easy-to-use environment for development, version-control, compilation and sim
 5. Install python packages:
    * pip3 install gitpython
    * pip3 install requests
+   * pip3 install cocotb
+6. Install IcarusVerilog and GTKWave
 
 ## Foundations and dependencies
 1. Uses icarus-verilog for compilation
 2. Uses gtkwave for waveform viewer
 3. Uses config file format for project description
+4. Uses cocotb for testbenches
 
 ## Basic usage
 1. sim.py is the base script

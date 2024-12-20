@@ -23,8 +23,8 @@ def search_until_parent_target(start_dir, target_dir):
         parent_dir = os.path.dirname(current_dir)
         
         # Check if the parent directory matches the target directory
-        if os.path.basename(parent_dir) == target_dir:
-            return parent_dir
+        if parent_dir == target_dir:
+            return current_dir
         
         # Move to the parent directory
         current_dir = parent_dir
@@ -41,8 +41,8 @@ def parse_args():
         parser.print_help()
         exit(2)
     else:
-        elif not args.w:
-            ws_path = search_until_parent_targe(os.cwd(), os.environ['home_dir']) 
+        if not args.w:
+            ws_path = search_until_parent_target(os.getcwd(), os.environ['home_dir']) 
         else:
             ws_path = _check_ws_path(args.w)
         repo_name = args.r

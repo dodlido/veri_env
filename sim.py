@@ -261,7 +261,7 @@ def _parse_args():
         exit(2)
     else:
         if not args.ws:
-            if os.evniron['home_dir'] not in str(Path.cwd()):
+            if os.environ['home_dir'] not in str(Path.cwd()):
                 _err('Workspace not provided and not under home directory')
             else:
                 p = Path.cwd().absolute()

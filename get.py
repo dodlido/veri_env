@@ -10,7 +10,7 @@ def _err(m):
 
 def _check_ws_path(p: str)->Path:
     ws_path = Path(p)
-    if not p.is_dir():
+    if not ws_path.is_dir():
         message = 'Provided WS path (' + p + ') is not a valid directory'
         _err(message)
     else:

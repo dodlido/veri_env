@@ -9,17 +9,18 @@ import os
 import requests
 import subprocess
 
+# GitHub credentials and repository information
+github_username = os.environ['git_username']
+github_key_path = os.environ['git_key_path']
+
 def get_api_token():
-    with open('/home/etay-sela/design/.github_api_key') as f:
+    with open(github_key_path) as f:
         key = f.read().split('\n')[0]
     return key
 
-# GitHub credentials and repository information
-github_username = 'dodlido'
-github_token = get_api_token() 
-
 # Function to create GitHub repository using GitHub API
 def create_github_repository(repo_name):
+    github_token = get_api_token() 
     url = f'https://api.github.com/user/repos'
     headers = {
         'Authorization': f'token {github_token}',

@@ -10,7 +10,7 @@ from datetime import datetime
 
 
 def parse_args():
-    parser = argparse.ArgumentParser(description='release')
+    parser = argparse.ArgumentParser(description='release creates a git tag in the remote repository and a local copy in your storage')
     parser.add_argument('-m', '--message', type=str, action='store', dest='m', help='Release message', required=False)
     parser.add_argument('-t', '--type', type=str, action='store', dest='t', help='Release type major/minor/standard, defaults to standard', required=False)
     args = parser.parse_args()

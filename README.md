@@ -1,7 +1,18 @@
 # veri_env
-An easy-to-use environment for compilation and simulation of verilog projects
+An easy-to-use environment for development, version-control, compilation and simulation of verilog projects
 
-## Foundations
+## Setup - first use only
+1. Create a directory for the tools with your version of my_defs.sh (see my_defs_template.sh)
+   * Note that you will need to provide a github api key
+2. In the same directory, create a virtual env (python3 -m venv veri_env)
+3. Add to the activate script in veri_env/bin/activate with the following line:
+   * source ${0%/*}/../../my_defs.sh 
+4. Source the setup.sh script
+5. Install python packages:
+   * pip3 install gitpython
+   * pip3 install requests
+
+## Foundations and dependencies
 1. Uses icarus-verilog for compilation
 2. Uses gtkwave for waveform viewer
 3. Uses config file format for project description
@@ -39,6 +50,14 @@ An easy-to-use environment for compilation and simulation of verilog projects
 4. To specify files, use "key: \n value1 \n value2 \n ... valueN" syntax under [view] section of your configuration where:
    * key = "file"
    * value = "file_name" where file_name is a desired file (path relative to this top-level folder)
+
+## Managing blocks
+1. Users can use the 'add' alias to add a new git repository to their on github account
+2. Users can use the 'get' alias to get to their current workspace a clone of any remote repository from their github account
+3. Users can use the 'rls' alias to create a release of any repository. This will:
+   * sign all verilog source files with the date, version and author's name
+   * Create a remote tag
+   * Create a local copy of the repo at the location provided in my_defs.sh
 
 ## TODO:
 1. Implement top-level-synth and top-level-tb features

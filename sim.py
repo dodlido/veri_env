@@ -26,7 +26,7 @@ def _get_child_cfg_path(ws_path: Path, child_name: str, child_type: str, papa_cf
                 _err('Syntax error in ' + child_type + 'provide release version in a \'release, x.y.z\' format')
         else:
             version = child_type.split(',')[-1].replace(' ', '')
-            cfg_path = Path('/home/etay-sela/design/veri_strg') / Path(repo_name) / Path('v' + version) / Path('design') / Path(blk_name) / Path('misc') / Path(blk_name + '.cfg')
+            cfg_path = Path(os.environ['rls_dir']) / Path(repo_name) / Path('v' + version) / Path('design') / Path(blk_name) / Path('misc') / Path(blk_name + '.cfg')
     else:
         _err(child_type + ' not supported yet')
     if not cfg_path.is_file():
@@ -241,14 +241,14 @@ def _create_output_dir(ws_path: Path, cfg_path: Path) -> None:
     blk_name = str(cfg_path.parent.parent).split('/')[-1]
     repo_name = str(cfg_path.parent.parent.parent.parent).split('/')[-1]
     ws_name = str(ws_path).split('/')[-1]
-    output_dir = Path('/home/etay-sela/design/veri_work') / ws_name / repo_name / blk_name
+    output_dir = Path(os.environ['work_dir']) / ws_name / repo_name / blk_name
     # output_dir = ws_path / Path('sim') / repo_name / blk_name
     output_dir.mkdir(parents=True, exist_ok=True) # Create output directory if needed
     return output_dir
 
 # parse flags:
 def _parse_args():
-    parser = argparse.ArgumentParser(description='sim')
+    parser = argparse.ArgumentParser(description='Simulate a given view of any design')
     parser.add_argument('-w', '--workspace', type=str, action='store', dest='ws', help='Path to workspace', required=False)
     parser.add_argument('-c', '--cfg', type=str, action='store', dest='c', help='Path to configuration file', required=False)
     parser.add_argument('-v', '--view', type=str, action='store', dest='v', help='Desired view', required=True)
@@ -261,11 +261,11 @@ def _parse_args():
         exit(2)
     else:
         if not args.ws:
-            if 'home' not in str(Path.cwd()):
+            if os.evniron['home_dir'] not in str(Path.cwd()):
                 _err('Workspace not provided and not under home directory')
             else:
                 p = Path.cwd().absolute()
-                while (str(p.parent)).split('/')[-1] != 'veri_home':
+                while (str(p.parent)) != os.environ['home_dir']:
                     p = p.parent
                 ws_path = p
         else:

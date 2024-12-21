@@ -11,57 +11,52 @@ Of verilog projects
 ## Setup - first use only
 
 1. Create a directory for the tools with your version of my_defs.sh (see my_defs_template.sh)
-.. code-block:: console
 
+```bash
     mkdir tools
     cp veri_env/my_defs_template.sh tools/my_defs.sh
+```
 
-.. 
    * Fill the my_defs.sh file with your personal prefrences and variables
    * Note that you will need to provide a github api key. Tutorial is here:
         https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/managing-your-personal-access-tokens
 
 2. Download python's virtualenv library:
-.. code-block:: console
 
+```bash
     pip3 install virtualenv
-
-.. 
+```
  
 3. Under the tools directory, create a virtual env:
-.. code-block:: console
 
+```bash
     python3 -m venv py_venv
-
-.. 
+```
 
 4. Add to the activate script in py_venv/bin/activate with the following line:
    * source ${0%/*}/../../my_defs.sh 
 
 5. Source the setup script:
-.. code-block:: console
 
+```bash
     source tools/veri_env/setup.sh w setup
     cd -
-
-.. 
+```
 
 6. Python's virtual environment should be set-up by now, you can verify this by:
-.. code-block:: console
 
+```bash
     which python3
     >> tools/py_venv/bin/python3
-
-.. 
+```
 
 7. Install python packages:
-.. code-block:: console
 
+```bash
     pip3 install gitpython
     pip3 install requests
     pip3 install cocotb
-
-.. 
+```
 
 8. Install IcarusVerilog:
         https://steveicarus.github.io/iverilog/usage/installation.html#
@@ -70,11 +65,10 @@ Of verilog projects
         https://flathub.org/apps/io.github.gtkwave.GTKWave
 
 10. Install make:
-.. code-block:: console
 
+```bash
     sudo apt-get install build-essential
-
-.. 
+```
 
 ## Foundations and dependencies
 1. Uses icarus-verilog for compilation

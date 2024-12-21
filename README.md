@@ -14,6 +14,8 @@ Of verilog projects
 
 ```bash
     mkdir tools
+    cd tools
+    git clone git@github.com:dodlido/veri_env.git 
     cp veri_env/my_defs_template.sh tools/my_defs.sh
 ```
 

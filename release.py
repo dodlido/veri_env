@@ -66,7 +66,7 @@ def gen_footer_line(lhs: str, rhs: str, border: bool=False, empty: bool=False) -
 
 def compose_footer(repo_name: str, version: str) -> str:
     date = datetime.today().strftime('%Y-%m-%d')
-    author = 'Etay Sela'
+    author = os.environ['real_username']
     new_footer  = gen_footer_line('','',border=True)
     new_footer += gen_footer_line('','',empty=True)
     new_footer += gen_footer_line(' 1. Project ', repo_name)
@@ -113,12 +113,16 @@ def add_commit_push_n_tag(new_tag: str, message: str) -> None:
     return
 
 def store(new_tag: str) -> None:
-    storage_base_path = Path('/home/etay-sela/design/veri_strg')
+    storage_base_path = Path(os.environ['rls_dir'])
     repo_name = get_repo_name()
     repo_path = storage_base_path / Path(repo_name)
     dest_path = repo_path / Path(new_tag)
     dest_path.mkdir(parents=True)
-    git.Repo.clone_from('git@github.com:dodlido/' + repo_name + '.git', dest_path)
+    git.Repo.clone_from(os.environ['git_main_path'] + repo_name + '.git', dest_path)
+    if repo_name=='veri_env':
+        subprocess.run(['cd', os.environ['utils_dir'] + '/veri_env'], shell=True)
+        subprocess.run(['git', 'pull'], shell=True)
+        subprocess.run(['cd','-'], shell=True)
     return
 
 # Usage: release.py -m <release message> --type <release type>

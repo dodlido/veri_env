@@ -1,18 +1,66 @@
 # veri_env
-An easy-to-use environment for development, version-control, compilation and simulation of verilog projects
+An easy-to-use environment for:
+1. Development
+2. Version-control
+3. Compilation
+4. Simulation
+5. Verification
+6. Synthesis
+Of verilog projects
 
 ## Setup - first use only
+
 1. Create a directory for the tools with your version of my_defs.sh (see my_defs_template.sh)
-   * Note that you will need to provide a github api key
-2. In the same directory, create a virtual env (python3 -m venv veri_env)
-3. Add to the activate script in veri_env/bin/activate with the following line:
+.. code-block:: console
+    mkdir tools
+    cp veri_env/my_defs_template.sh tools/my_defs.sh
+.. 
+   * Fill the my_defs.sh file with your personal prefrences and variables
+   * Note that you will need to provide a github api key. Tutorial is here:
+        https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/managing-your-personal-access-tokens
+
+2. Download python's virtualenv library:
+.. code-block:: console
+    pip3 install virtualenv
+.. 
+ 
+3. Under the tools directory, create a virtual env:
+.. code-block:: console
+    python3 -m venv py_venv
+.. 
+
+4. Add to the activate script in py_venv/bin/activate with the following line:
    * source ${0%/*}/../../my_defs.sh 
-4. Source the setup.sh script
-5. Install python packages:
-   * pip3 install gitpython
-   * pip3 install requests
-   * pip3 install cocotb
-6. Install IcarusVerilog and GTKWave
+
+5. Source the setup script:
+.. code-block:: console
+    source tools/veri_env/setup.sh w setup
+    cd -
+.. 
+
+6. Python's virtual environment should be set-up by now, you can verify this by:
+.. code-block:: console
+    which python3
+    >> tools/py_venv/bin/python3
+.. 
+
+7. Install python packages:
+.. code-block:: console
+    pip3 install gitpython
+    pip3 install requests
+    pip3 install cocotb
+.. 
+
+8. Install IcarusVerilog:
+        https://steveicarus.github.io/iverilog/usage/installation.html#
+
+9. Install GTKWave:
+        https://flathub.org/apps/io.github.gtkwave.GTKWave
+
+10. Install make:
+.. code-block:: console
+    sudo apt-get install build-essential
+.. 
 
 ## Foundations and dependencies
 1. Uses icarus-verilog for compilation
@@ -63,6 +111,9 @@ An easy-to-use environment for development, version-control, compilation and sim
    * Create a local copy of the repo at the location provided in my_defs.sh
 
 ## TODO:
-1. Implement top-level-synth and top-level-tb features
+1. Implement top-level-synth
+2. top-level-tb features
+   * no clock designs fail the auto-test
+   * automatic test-bench generation
 2. Plant desired .vcd location in top-level-tb
 3. Check that everything works fine with sv syntax

@@ -16,9 +16,7 @@ def _get_child_cfg_path(ws_path: Path, child_name: str, child_type: str, papa_cf
     blk_name = child_name.split('/')[-1]
     repo_name = child_name.split('/')[0]
     if child_type=='local':
-        cfg_path = ws_path / Path(child_name) / Path('misc') / Path(blk_name + '.cfg')
-    elif child_type=='project':
-        cfg_path = papa_cfg_path.parent.parent.parent / Path(blk_name) / Path('misc') / Path(blk_name + '.cfg')
+        cfg_path = ws_path / Path(repo_name) / Path('design') / Path(blk_name) / Path('misc') / Path(blk_name + '.cfg')
     elif 'release' in child_type:
         if ',' not in child_type:
             _err('Syntax error in ' + child_type + 'provide release version in a \'release, x.y.z\' format')

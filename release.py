@@ -120,9 +120,9 @@ def store(new_tag: str) -> None:
     dest_path.mkdir(parents=True)
     git.Repo.clone_from(os.environ['git_main_path'] + repo_name + '.git', dest_path)
     if repo_name=='veri_env':
-        subprocess.run(['cd', os.environ['utils_dir'] + '/veri_env'], shell=True)
-        subprocess.run(['git', 'pull'], shell=True)
-        subprocess.run(['cd','-'], shell=True)
+        subprocess.run(['cd ' + os.environ['utils_dir'] + '/veri_env'], shell=True)
+        subprocess.run(['git pull'], shell=True)
+        subprocess.run(['cd -'], shell=True)
     return
 
 # Usage: release.py -m <release message> --type <release type>

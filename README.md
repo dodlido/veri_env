@@ -12,8 +12,10 @@ Of verilog projects
 
 1. Create a directory for the tools with your version of my_defs.sh (see my_defs_template.sh)
 .. code-block:: console
+
     mkdir tools
     cp veri_env/my_defs_template.sh tools/my_defs.sh
+
 .. 
    * Fill the my_defs.sh file with your personal prefrences and variables
    * Note that you will need to provide a github api key. Tutorial is here:
@@ -21,12 +23,16 @@ Of verilog projects
 
 2. Download python's virtualenv library:
 .. code-block:: console
+
     pip3 install virtualenv
+
 .. 
  
 3. Under the tools directory, create a virtual env:
 .. code-block:: console
+
     python3 -m venv py_venv
+
 .. 
 
 4. Add to the activate script in py_venv/bin/activate with the following line:
@@ -34,21 +40,27 @@ Of verilog projects
 
 5. Source the setup script:
 .. code-block:: console
+
     source tools/veri_env/setup.sh w setup
     cd -
+
 .. 
 
 6. Python's virtual environment should be set-up by now, you can verify this by:
 .. code-block:: console
+
     which python3
     >> tools/py_venv/bin/python3
+
 .. 
 
 7. Install python packages:
 .. code-block:: console
+
     pip3 install gitpython
     pip3 install requests
     pip3 install cocotb
+
 .. 
 
 8. Install IcarusVerilog:
@@ -59,7 +71,9 @@ Of verilog projects
 
 10. Install make:
 .. code-block:: console
+
     sudo apt-get install build-essential
+
 .. 
 
 ## Foundations and dependencies

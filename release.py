@@ -7,6 +7,7 @@ import sys
 import os
 import git
 from datetime import datetime
+import time
 
 
 def parse_args():
@@ -120,6 +121,7 @@ def store(new_tag: str) -> None:
     dest_path.mkdir(parents=True)
     git.Repo.clone_from(os.environ['git_main_path'] + repo_name + '.git', dest_path)
     if repo_name=='veri_env':
+        time.sleep(10)
         subprocess.run(['cd ' + os.environ['utils_dir'] + '/veri_env'], shell=True)
         subprocess.run(['git pull'], shell=True)
         subprocess.run(['cd -'], shell=True)

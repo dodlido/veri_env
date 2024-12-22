@@ -72,7 +72,7 @@ Of verilog projects
     sudo apt-get install build-essential
 ```
 
-## Setting Up - setup.sh
+## Setting Up
 
 1. When opening a new terminal, use setup to:
    * Familiarize the terminal with the 'veri_env' tools

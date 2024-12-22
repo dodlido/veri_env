@@ -6,6 +6,12 @@ import argparse
 import sys
 import os
 
+###################################
+###                             ###
+###  Start of helper functions  ###
+###                             ###
+###################################
+
 # Print error message and exit
 def _err(m: str) -> None:
     print('Error: ' + m)
@@ -102,28 +108,7 @@ def _parse_cfg_rec(ws_path: Path, cfg_path: Path, view: str, file_list: List[Pat
             file_list += _parse_cfg_rec(ws_path, paths[i], views[i], file_list)
         return file_list + _get_files(cfg, view, cfg_path)
 
-# Find top level module name for a specific view:
-def _get_top_level(cfg_path: Path, view: str):
-    if not cfg_path.is_file():
-        _err('.cfg file not found in: ' + str(cfg_path))
-    else:
-        cfg = configparser.ConfigParser()
-        cfg.read(cfg_path)
-        if view not in cfg:
-            _err('view ' + view + ' not found in cfg file')
-        else:
-            if 'design' not in cfg[view]:
-                _err('design section not found in view ' + view)
-            else:
-                design_content = cfg[view]['design'].split('\n')
-                for line in design_content:
-                    line.replace(' ', '')
-                    if 'top' not in line:
-                        continue
-                    elif '=' not in line:
-                        _err('Top level module not defined in design section')
-                    else:
-                        return line.split('=')[1]
+
 
 # Generates a .fl file list in the desired location
 def _gen_fl(fl_dir: str, file_list: List[Path]) -> None:
@@ -136,9 +121,9 @@ def _gen_fl(fl_dir: str, file_list: List[Path]) -> None:
                 fl.write(str(file)+'\n')
 
 # Generates a makefile
-def _make_make(out_dir: str, top_level_name: str) -> None:
-    fl_path = Path(out_dir) / Path('design.fl')
-    make_path = Path(out_dir) / Path('makefile')
+def _make_make(work_dir: str, top_level_module: str) -> None:
+    fl_path = Path(work_dir) / Path('design.fl')
+    make_path = Path(work_dir) / Path('makefile')
     if not fl_path.is_file():
         _err('File list not found in ' + str(fl_path))
     else:
@@ -151,27 +136,37 @@ def _make_make(out_dir: str, top_level_name: str) -> None:
             for file in fl_list:
                 file_str = str(Path(file.rstrip()).as_posix())
                 makefile.write('VERILOG_SOURCES += ' + file_str + '\n')
-            makefile.write('\nTOPLEVEL = ' + top_level_name + '\n\n')
-            makefile.write('MODULE = ' + top_level_name + '_tb\n\n')
+            makefile.write('\nTOPLEVEL = ' + top_level_module + '\n\n')
+            makefile.write('MODULE = ' + top_level_module + '_tb\n\n')
             makefile.write('include $(shell cocotb-config --makefiles)/Makefile.sim')
 
 # Generates a generic testbench
-def _gen_tb(out_dir: str, top_level_name: str) -> None:
-    tb_path = Path(out_dir) / Path(top_level_name + '_tb.py') 
-    if tb_path.is_file():
-        print('Note: Found existing testbench in workspace, did not generate an automatic one')
+def _gen_tb(tb_dir: Path, work_dir: Path, top_level_module: str) -> None:
+    homedir_tb_path = tb_dir / Path(top_level_module + '_tb.py') 
+    workdir_tb_path = work_dir / Path(top_level_module + '_tb.py')   
+    if homedir_tb_path.is_file():
+        print(f'Note: Found existing testbench in {homedir_tb_path}, using this for simulation')
+        with open(homedir_tb_path, 'r') as hometb_file:
+            hometb_data = hometb_file.read()
+        with open(workdir_tb_path, 'w') as worktb_file:
+            worktb_file.write('import sys\n')
+            worktb_file.write('sys.path.append("' + str(homedir_tb_path.parent.parent) + '")\n')
+            worktb_file.write(hometb_data)
+        sys.path.insert(0, str(tb_dir.parent))
+        # subprocess.run(['cp'+ str(homedir_tb_path)+ str(workdir_tb_path)], shell=True)
     else:
-        with open(tb_path, 'w') as tb_file:
+        print(f'Note: Did not find an existing testbench in {homedir_tb_path}, generating an automatic one')
+        with open(workdir_tb_path, 'w') as tb_file:
             tb_file.write('import cocotb\nfrom cocotb.triggers import FallingEdge, Timer, RisingEdge\nfrom cocotb.clock import Clock\n\n')
             tb_file.write('@cocotb.test()\nasync def my_test(dut):\n   cocotb.start_soon(Clock(dut.clk, 1, units="ns").start())\n')
             tb_file.write('   for _ in range(10):\n      await RisingEdge(dut.clk)') # Placeholder
 
 # Add 'dump vcd file' section in design:
-def _add_dump_vcd(out_dir: str, top_level_name: str) -> None:
-    fl_path = Path(out_dir) / Path('design.fl')
+def _add_dump_vcd(work_dir: str, top_level_module: str) -> None:
+    fl_path = Path(work_dir) / Path('design.fl')
     with open(fl_path, 'r') as file_list:
         for line in file_list:
-            if top_level_name in line:
+            if top_level_module in line:
                 top_level_path = Path(line.rstrip())
     if not top_level_path.is_file():
         _err('Top level module not found in ' + str(top_level_path))
@@ -184,14 +179,14 @@ def _add_dump_vcd(out_dir: str, top_level_name: str) -> None:
                     break
                 else:
                     design.write(line)
-            design.write('\ninitial begin\n   $dumpfile(\"dump.vcd\");\n   $dumpvars(1, ' + top_level_name + ');\nend\nendmodule') 
+            design.write('\ninitial begin\n   $dumpfile(\"dump.vcd\");\n   $dumpvars(1, ' + top_level_module + ');\nend\nendmodule') 
 
 # Remove 'dump vcd file' section in design:
-def _rem_dump_vcd(out_dir: str, top_level_name: str) -> None:
-    fl_path = Path(out_dir) / Path('design.fl')
+def _rem_dump_vcd(work_dir: str, top_level_module: str) -> None:
+    fl_path = Path(work_dir) / Path('design.fl')
     with open(fl_path, 'r') as file_list:
         for line in file_list:
-            if top_level_name in line:
+            if top_level_module in line:
                 top_level_path = Path(line.rstrip())
     if not top_level_path.is_file():
         _err('Top level module not found in ' + str(top_level_path))
@@ -206,25 +201,18 @@ def _rem_dump_vcd(out_dir: str, top_level_name: str) -> None:
                     design.write(line)
             design.write('endmodule')
 
-# Generates a file list
-def _get_list(ws_path: Path, cfg_path: Path, view: str, output_dir: str) -> None:
-    file_list = _parse_cfg_rec(ws_path, cfg_path, view)
-    for i in range(len(file_list)):
-        file_list[i] = file_list[i].resolve()
-    file_list = list(set(file_list))
-    _gen_fl(output_dir, file_list)
 
 # Run make command on shell
-def _run_make(output_dir: str) -> None:
+def _run_make(work_dir: str) -> None:
     current_dir = os.getcwd()
-    os.chdir(output_dir)
+    os.chdir(work_dir)
     subprocess.run(['make'], shell=True)
     os.chdir(current_dir)
 
 # wave:
-def _wave(output_dir: str) -> None:
+def _wave(work_dir: str) -> None:
     found_vcd = False
-    for child in Path(output_dir).iterdir():
+    for child in Path(work_dir).iterdir():
         if child.is_file() and child.suffix=='.vcd':
             if found_vcd:
                 print('More than one .vcd file in folder, took the first ignored the rest')
@@ -237,18 +225,43 @@ def _wave(output_dir: str) -> None:
     else:
         print('No vcd files found')
 
-# mkdir:
-def _create_output_dir(ws_path: Path, cfg_path: Path) -> None:
-    blk_name = str(cfg_path.parent.parent).split('/')[-1]
-    repo_name = str(cfg_path.parent.parent.parent.parent).split('/')[-1]
-    ws_name = str(ws_path).split('/')[-1]
-    output_dir = Path(os.environ['work_dir']) / ws_name / repo_name / blk_name
-    # output_dir = ws_path / Path('sim') / repo_name / blk_name
-    output_dir.mkdir(parents=True, exist_ok=True) # Create output directory if needed
-    return output_dir
+    
+# Find top level module name for a specific view:
+def _get_top_level(cfg: configparser, view: str):
+    if view not in cfg:
+        _err('view ' + view + ' not found in cfg file')
+    else:
+        if 'design' not in cfg[view]:
+            _err('design section not found in view ' + view)
+        else:
+            design_content = cfg[view]['design'].split('\n')
+            for line in design_content:
+                line.replace(' ', '')
+                if 'top' not in line:
+                    continue
+                elif '=' not in line:
+                    _err('Top level module not defined in design section. Use this syntax:\n\ttop=top_level_module')
+                else:
+                    return line.split('=')[1]
 
-# parse flags:
-def _parse_args():
+# Recursivly search workspace path from some given start path
+def _search_ws_path(start_path: Path) -> Path:
+    if os.environ['home_dir'] not in str(start_path.parent):
+        _err('You are currently not inside any workspace')
+    p = start_path
+    while (str(p.parent)) != os.environ['home_dir']:
+        p = p.parent
+    ws_path = p
+    return ws_path
+
+#################################
+###                           ###
+###  End of helper functions  ###
+###                           ###
+#################################
+
+# 0. Parse Flags:
+def parse_args():
     parser = argparse.ArgumentParser(description='Simulate a given view of any design')
     parser.add_argument('-w', '--workspace', type=str, action='store', dest='ws', help='Path to workspace', required=False)
     parser.add_argument('-c', '--cfg', type=str, action='store', dest='c', help='Path to configuration file', required=False)
@@ -265,10 +278,7 @@ def _parse_args():
             if os.environ['home_dir'] not in str(Path.cwd()):
                 _err('Workspace not provided and not under home directory')
             else:
-                p = Path.cwd().absolute()
-                while (str(p.parent)) != os.environ['home_dir']:
-                    p = p.parent
-                ws_path = p
+                ws_path = _search_ws_path(Path.cwd().absolute())
         else:
             ws_path = Path(args.ws)
             if not ws_path.is_dir():
@@ -295,19 +305,84 @@ def _parse_args():
                 _err('specified cfg path is invalid')
     return ws_path, cfg_path, args.v, args.wave
 
-# sim main function:
-def main() -> None:
-    ws_path, cfg_path, view, waves = _parse_args()
-    output_dir = _create_output_dir(ws_path, cfg_path)
-    _get_list(ws_path, cfg_path, view, output_dir)
-    top_level_name = _get_top_level(cfg_path, view)
-    _make_make(output_dir, top_level_name)
-    _gen_tb(output_dir, top_level_name)
-    _add_dump_vcd(output_dir, top_level_name)
-    _run_make(output_dir)
+# 1. Generate Descriptor from Config File
+def get_descriptor(cfg_path: Path, ws_path: str, view: str)-> Tuple[str, str, str, Path, Path, Path]:
+
+    # Parse 'general' section in config
+    cfg = configparser.ConfigParser()
+    cfg.read(cfg_path)
+    if 'general' not in cfg:
+        _err('general section is a mandatory part of the configuration file')
+    else:
+        if 'block' not in cfg['general']:
+            _err('general section must have a "block" key. Use this syntax:\n\tgeneral:\n\t\tblock=project_name/design/block_name')
+        else:
+            key = cfg['general'].get('block')
+
+    # Parse key
+    keys_list = key.split('/')
+    if len(keys_list)!=3:
+        _err('detected wrong syntax in "block" key in general section. Use this syntax:\n\tgeneral:\n\t\tblock=project_name/design/block_name')
+    project_name, block_name = keys_list[0], keys_list[2]
+
+    # Important directories
+    rtl_dir   = ws_path / project_name / 'design'       / block_name / 'rtl'
+    tb_dir    = ws_path / project_name / 'verification' / block_name / 'tests'
+    work_dir  = Path(os.environ['work_dir']) / str(ws_path).split('/')[-1] / project_name / block_name
+    work_dir.mkdir(parents=True, exist_ok=True) # Create output directory if needed
+
+    top_level_module = _get_top_level(cfg, view)
+
+    return project_name, block_name, top_level_module, rtl_dir, tb_dir, work_dir
+
+# 2. Generates a file list
+def get_list(ws_path: Path, cfg_path: Path, view: str, output_dir: str) -> None:
+    file_list = _parse_cfg_rec(ws_path, cfg_path, view)
+    for i in range(len(file_list)):
+        file_list[i] = file_list[i].resolve()
+    file_list = list(set(file_list))
+    _gen_fl(output_dir, file_list)
+
+# 3. Create test files: makefile and testbench
+def create_test(tb_dir: Path, work_dir: Path, top_level_module: str) -> None:
+    _make_make(work_dir, top_level_module)
+    _gen_tb(tb_dir, work_dir, top_level_module)
+
+# 4. Run simulation 
+def run_sim(work_dir: Path, top_level_module: str, waves: bool) -> None:
+    # 0. Temporarly edit design to include vcd dump
+    _add_dump_vcd(work_dir, top_level_module)
+    # 1. Run make file
+    _run_make(work_dir)
+    # 2. Open GTKWave if needed
     if waves:
-        _wave(output_dir)
-    _rem_dump_vcd(output_dir, top_level_name)
+        _wave(work_dir)
+    # 3. Remove Dump
+    _rem_dump_vcd(work_dir, top_level_module)
+
+############################
+###                      ###
+### sim.py main function ###
+###                      ###
+############################
+
+def main() -> None:
+    # 0. Parse user arguments
+    ws_path, cfg_path, view, waves = parse_args()
+    # 1. Get descriptor from configuraiton file
+    project_name, block_name, top_level_module, rtl_dir, tb_dir, work_dir = get_descriptor(cfg_path, ws_path, view)
+    # 2. Generate filelist
+    get_list(ws_path, cfg_path, view, work_dir)
+    # 3. Create test files: makefile and testbench
+    create_test(tb_dir, work_dir, top_level_module)
+    # 4. Run simulation
+    run_sim(work_dir, top_level_module, waves)
+
+############################
+###                      ###
+### sim.py main function ###
+###                      ###
+############################
 
 if __name__ == '__main__':
     main()

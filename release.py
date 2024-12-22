@@ -118,6 +118,9 @@ def store(new_tag: str) -> None:
     repo_name = get_repo_name()
     repo_path = storage_base_path / Path(repo_name)
     dest_path = repo_path / Path(new_tag)
+    print(dest_path)
+    if dest_path.is_dir():
+        _err('Destination storage directory is not empty')
     dest_path.mkdir(parents=True)
     git.Repo.clone_from(os.environ['git_main_path'] + repo_name + '.git', dest_path)
     if repo_name=='veri_env':

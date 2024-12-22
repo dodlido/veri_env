@@ -9,6 +9,9 @@ import git
 from datetime import datetime
 import time
 
+def _err(m):
+    print('Error: ' + m)
+    exit(2)
 
 def parse_args():
     parser = argparse.ArgumentParser(description='release creates a git tag in the remote repository and a local copy in your storage')

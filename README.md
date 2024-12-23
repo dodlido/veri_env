@@ -206,7 +206,22 @@ Of verilog projects
 3. The target directory of the simulation results is $work_dir/ws_name/block_name where $work_dir was defined in your my_defs.sh
 3. Which test will run? 
    * If sim.py found an existing testbench in the reserved path as explained in the file system section, it will use it for simulation
-   * Otherwise, an automatic testbench will be generated  
+   * Otherwise, an automatic testbench will be generated. See next section for an explanation on the automatic test capabilities
+
+## Automatic Test Capabilities
+1. Parses the top-level ports according to the following types:
+   * **clock** - any input port that contains the substring *clk*
+   * **reset** - any input port that contains the substring *rst* or *reset*
+   * **input** - any input port that does not fit either **clocks** or **resets**
+   * **panic** - any output port that contains the substring *panic*
+   * **output** - any output port that is not a **panic**
+2. **clock**s are all generated with the same 1ns cycle at the beginning of the test 
+3. **reset**s are assumed to be active low. asserted low for 10 clock cycles at the beginning of the test and then deactivated
+4. **input**s are:
+   * Initialized with 0 while reset coroutine is active
+   * Assigned a different random value (with regard to the port width) every cycle after reset
+5. **panic**s are used as cocotb assertions that are asserted if the panic signal is high. This signals should be driven by the design to indicate error cases.
+6. **output**s are not handled in any way buy the tests at this moment
 
 ## Managing blocks
 1. Users can use the 'add' alias to add a new git repository to their on github account
@@ -218,8 +233,9 @@ Of verilog projects
 
 ## TODO:
 1. Implement top-level-synth
-2. top-level-tb features
-   * no clock designs fail the auto-test
-   * automatic test-bench generation
-2. Plant desired .vcd location in top-level-tb
-3. Check that everything works fine with sv syntax
+2. Add --no-coco flag to sim.py
+3. Move some of the sim.py helper functions to utils subfolder (like getlist, etc...)
+4. Add -sim-time flag to sim.py
+5. Add --high-rst flag to sim.py to use active-high resets
+7. Plant desired .vcd location in top-level-tb
+8. Check that everything works fine with sv syntax

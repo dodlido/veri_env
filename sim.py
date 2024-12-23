@@ -5,6 +5,7 @@ import subprocess
 import argparse
 import sys
 import os
+from utils.enst import get_if
 
 ###################################
 ###                             ###
@@ -140,26 +141,76 @@ def _make_make(work_dir: str, top_level_module: str) -> None:
             makefile.write('MODULE = ' + top_level_module + '_tb\n\n')
             makefile.write('include $(shell cocotb-config --makefiles)/Makefile.sim')
 
+# Get a list of input names and a list of output names for a given module
+def _get_portlist(rtl_dir: Path, top_level_module: str, work_dir: Path) -> Tuple[List[str], List[str]]:
+    top_level_path = rtl_dir / Path(top_level_module + '.v')
+    if_dict = get_if(top_level_path)
+    clks, rsts, inputs, outputs, panics  = [], [], [], [], []
+    for dictionary in if_dict:
+        for i, name in enumerate(dictionary["names"]):
+            if dictionary['directions'][i]=='input':
+                if 'clk' in name:
+                    clks.append(name)
+                elif ('rst' or 'reset') in name:
+                    rsts.append(name)
+                else:
+                    inputs.append(name)
+            else:
+                if 'panic' in name:
+                    panics.append(name)
+                else:
+                    outputs.append(name)
+    output_dir = work_dir / Path('port_description')
+    output_dir.mkdir(parents=True, exist_ok=True) # Create output directory if needed
+    clks_file = output_dir / Path('clks.txt')
+    with open(clks_file, 'w') as file:
+        for clk in clks:
+            file.write(clk+'\n')
+    rsts_file = output_dir / Path('resets.txt')
+    with open(rsts_file, 'w') as file:
+        for rst in rsts:
+            file.write(rst+'\n')
+    inputs_file = output_dir / Path('inputs.txt')
+    with open(inputs_file, 'w') as file:
+        for _input in inputs:
+            file.write(_input+'\n')
+    outputs_file = output_dir / Path('outputs.txt')
+    with open(outputs_file, 'w') as file:
+        for output in outputs:
+            file.write(output+'\n')
+    panics_file = output_dir / Path('panics.txt')
+    with open(panics_file, 'w') as file:
+        for panic in panics:
+            file.write(panic+'\n')
+
 # Generates a generic testbench
 def _gen_tb(tb_dir: Path, work_dir: Path, top_level_module: str) -> None:
+    
+    # Paths to Testbenches
     homedir_tb_path = tb_dir / Path(top_level_module + '_tb.py') 
     workdir_tb_path = work_dir / Path(top_level_module + '_tb.py')   
-    if homedir_tb_path.is_file():
-        print(f'Note: Found existing testbench in {homedir_tb_path}, using this for simulation')
-        with open(homedir_tb_path, 'r') as hometb_file:
-            hometb_data = hometb_file.read()
-        with open(workdir_tb_path, 'w') as worktb_file:
-            worktb_file.write('import sys\n')
-            worktb_file.write('sys.path.append("' + str(homedir_tb_path.parent.parent) + '")\n')
-            worktb_file.write(hometb_data)
-        sys.path.insert(0, str(tb_dir.parent))
-        # subprocess.run(['cp'+ str(homedir_tb_path)+ str(workdir_tb_path)], shell=True)
-    else:
+    auto_tb_path = Path(os.environ['tools_dir']) / Path('utils/auto_tb.py')
+    
+    # Generate automatic testbench:
+    if not homedir_tb_path.is_file():
         print(f'Note: Did not find an existing testbench in {homedir_tb_path}, generating an automatic one')
-        with open(workdir_tb_path, 'w') as tb_file:
-            tb_file.write('import cocotb\nfrom cocotb.triggers import FallingEdge, Timer, RisingEdge\nfrom cocotb.clock import Clock\n\n')
-            tb_file.write('@cocotb.test()\nasync def my_test(dut):\n   cocotb.start_soon(Clock(dut.clk, 1, units="ns").start())\n')
-            tb_file.write('   for _ in range(10):\n      await RisingEdge(dut.clk)') # Placeholder
+        with open(auto_tb_path, 'r') as file:
+            tb_contents = 'work_dir = \"' + str(work_dir) + '\"\n'
+            tb_contents += file.read()
+    # Get existing testbench from verification directory:
+    else:
+        print(f'Note: Found existing testbench in {homedir_tb_path}, using this for simulation')
+        # add verification directory to sys path in case there are some additional files in there:
+        sys.path.insert(0, str(tb_dir.parent)) 
+        tb_contents = 'import sys\n' 
+        tb_contents += 'sys.path.append("' + str(homedir_tb_path.parent.parent) + '")\n'
+        with open(homedir_tb_path, 'r') as file:
+            tb_contents += file.read()
+    
+    # Write testbench to workdir
+    with open(workdir_tb_path, 'w') as worktb_file:
+        worktb_file.write(tb_contents)
+
 
 # Add 'dump vcd file' section in design:
 def _add_dump_vcd(work_dir: str, top_level_module: str) -> None:
@@ -344,9 +395,10 @@ def get_list(ws_path: Path, cfg_path: Path, view: str, output_dir: str) -> None:
     _gen_fl(output_dir, file_list)
 
 # 3. Create test files: makefile and testbench
-def create_test(tb_dir: Path, work_dir: Path, top_level_module: str) -> None:
+def create_test(tb_dir: Path, work_dir: Path, top_level_module: str, rtl_dir: Path) -> None:
     _make_make(work_dir, top_level_module)
     _gen_tb(tb_dir, work_dir, top_level_module)
+    _get_portlist(rtl_dir, top_level_module, work_dir)
 
 # 4. Run simulation 
 def run_sim(work_dir: Path, top_level_module: str, waves: bool) -> None:
@@ -374,7 +426,7 @@ def main() -> None:
     # 2. Generate filelist
     get_list(ws_path, cfg_path, view, work_dir)
     # 3. Create test files: makefile and testbench
-    create_test(tb_dir, work_dir, top_level_module)
+    create_test(tb_dir, work_dir, top_level_module, rtl_dir)
     # 4. Run simulation
     run_sim(work_dir, top_level_module, waves)
 

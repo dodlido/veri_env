@@ -234,8 +234,6 @@ Of verilog projects
 ## TODO:
 1. Implement top-level-synth
 2. Add --no-coco flag to sim.py
-3. Move some of the sim.py helper functions to utils subfolder (like getlist, etc...)
-4. Add -sim-time flag to sim.py
-5. Add --high-rst flag to sim.py to use active-high resets
-7. Plant desired .vcd location in top-level-tb
-8. Check that everything works fine with sv syntax
+3. Add -sim-time flag to sim.py
+4. Add --high-rst flag to sim.py 
+5. Plant desired .vcd location in top-level-tb

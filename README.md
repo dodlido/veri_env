@@ -203,10 +203,13 @@ Of verilog projects
    * -c PATH   :  path to a configuration file, optional, if cwd is some *design block* this is not necessary
    * -v VIEW   :  view name, required
    * --waves   :  Open gtkwave, optional trigger 
+   * --no-coco :  Run IcarusVerilog compilation only, without simultation
+   * --sim-time:  Set simulation time for automatic testbench, specified in [cycles]
 3. The target directory of the simulation results is $work_dir/ws_name/block_name where $work_dir was defined in your my_defs.sh
-3. Which test will run? 
+4. Which test will run? 
    * If sim.py found an existing testbench in the reserved path as explained in the file system section, it will use it for simulation
    * Otherwise, an automatic testbench will be generated. See next section for an explanation on the automatic test capabilities
+5. sim.py will print a log that summarizes all the generated results at the end of each run
 
 ## Automatic Test Capabilities
 1. Parses the top-level ports according to the following types:

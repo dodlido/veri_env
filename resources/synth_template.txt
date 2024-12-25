@@ -1,0 +1,23 @@
+# read design
+read -sv {FILELIST}
+hierarchy -top {TOP_LEVEL_MODULE}
+
+# the high-level stuff
+proc; fsm; opt; memory; opt
+
+# mapping to internal cell library
+techmap; opt
+
+# mapping flip-flops to mycells.lib
+dfflibmap -liberty {LIB}
+
+# mapping logic to mycells.lib
+abc -liberty {LIB}
+
+# write output file
+write_verilog {OUTPUT_PATH}
+
+{SHOW} show -format ps -viewer gv
+
+# cleanup
+clean

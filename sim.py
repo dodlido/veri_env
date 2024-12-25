@@ -166,7 +166,7 @@ def _gen_tb(tb_dir: Path, work_dir: Path, block_name: str, simtime: int, results
     # Paths to Testbenches
     homedir_tb_path = tb_dir / Path(block_name + '_tb.py') 
     workdir_tb_path = work_dir / Path(block_name + '_tb.py')   
-    auto_tb_path = Path(os.environ['tools_dir']) / Path('utils/auto_tb.py')
+    auto_tb_path = Path(os.environ['tools_dir']) / Path('resources/auto_tb_template.txt')
     
     # Generate automatic testbench:
     if not homedir_tb_path.is_file():

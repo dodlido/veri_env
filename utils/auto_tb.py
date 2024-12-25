@@ -8,9 +8,6 @@ from pathlib import Path
 import math
 from typing import Tuple
 
-# Parameters
-iterations = 2 ** 16 
-
 # Port list reading
 def get_ports_lists():
     clk_list, rst_list, input_list, output_list, panic_list = [], [], [], [], []

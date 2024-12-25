@@ -233,7 +233,3 @@ Of verilog projects
 
 ## TODO:
 1. Implement top-level-synth
-2. Add --no-coco flag to sim.py
-3. Add -sim-time flag to sim.py
-4. Add --high-rst flag to sim.py 
-5. Plant desired .vcd location in top-level-tb

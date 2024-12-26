@@ -250,10 +250,10 @@ Of verilog projects
    * Create a local copy of the repo at the location provided in my_defs.sh
 
 ## TODO:
-* Fix --sim-time bug
-* Explain syn.py
-* Clean parse_args functions (standardize -w and -c flag parsing)
-* Fix get, add ugly errors
-* Output log header fix
+* fix --sim-time bug
+* clean parse_args functions (standardize -w and -c flag parsing)
+* fix get, add ugly errors
+* output log header fix
 * add defines to cfg parsing
-
+* add --pretty flag to syn
+* add some template of block to add.py, -b flag

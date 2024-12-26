@@ -74,17 +74,16 @@ async def my_test(dut):
         cocotb.start_soon(drive_clocks(dut, clk_list))
         cocotb.start_soon(drive_inputs(dut, input_list, True))
         await reset_dut(dut, rst_list, clk_list[0])
-        #await RisingEdge(dut._id(clk_list[0], extended=False))
 
-    # 2. Main Loop:
-    for _ in range(iterations):
+        # 2. Main Loop:
+        for _ in range(iterations):
         
-        # 2.1 Drive Inputs
-        cocotb.start_soon(drive_inputs(dut, input_list, False))
+            # 2.1 Drive Inputs
+            cocotb.start_soon(drive_inputs(dut, input_list, False))
 
-        # 2.2 Assert Panics
-        cocotb.start_soon(assert_panics(dut, panic_list))
+            # 2.2 Assert Panics
+            cocotb.start_soon(assert_panics(dut, panic_list))
 
-        # 2.3 Wait
-        await RisingEdge(dut._id(clk_list[0], extended=False))
+            # 2.3 Wait
+            await RisingEdge(dut._id(clk_list[0], extended=False))
 

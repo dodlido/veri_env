@@ -69,7 +69,7 @@ def parse_args():
     return ws_path, cfg_path, args.v, args.wave, simtime, args.nococo
 
 # Generates a makefile
-def _make_make(work_dir: str, top_level_module: str, results_names: List[str]=[], results_paths: List[str]=[]) -> Tuple[List[str], List[str]]:
+def _make_make(work_dir: str, top_level_module: str, block_name: str, results_names: List[str]=[], results_paths: List[str]=[]) -> Tuple[List[str], List[str]]:
     
     fl_path = Path(work_dir) / Path('design.fl')
     make_path = Path(work_dir) / Path('makefile')
@@ -94,7 +94,7 @@ def _make_make(work_dir: str, top_level_module: str, results_names: List[str]=[]
 
         # makefile footer
         makefile.write('\nTOPLEVEL = ' + top_level_module + '\n\n')
-        makefile.write('MODULE = ' + top_level_module + '_tb\n\n')
+        makefile.write('MODULE = ' + block_name + '_tb\n\n')
         makefile.write('include $(shell cocotb-config --makefiles)/Makefile.sim')
     
     # notify user
@@ -173,7 +173,7 @@ def _gen_tb(tb_dir: Path, work_dir: Path, block_name: str, simtime: int, results
         gen_note(f'there is no existing testbench in {homedir_tb_path}, an automatic one will be generated')
         with open(auto_tb_path, 'r') as file:
             tb_contents = 'work_dir = \"' + str(work_dir) + '\"\n'
-            tb_contents += f'iteration={simtime}\n'
+            tb_contents += f'iterations={simtime}\n'
             tb_contents += file.read()
     # Get existing testbench from verification directory:
     else:
@@ -270,7 +270,7 @@ def _run(work_dir: Path, top_level_module: str, nococo: bool=False, results_name
     # store current directory in temp
     current_dir = os.getcwd()
     # cd into workdir
-    gen_validate_path(work_dir, f'locate workdir {work_dir}', True)
+    gen_validate_path(work_dir, f'locate workdir', True)
     os.chdir(work_dir)
 
     # no cocotb flow:
@@ -322,7 +322,7 @@ def _wave(work_dir: str, results_names: List[str]=[], results_paths: List[str]=[
 
 # create test files: makefile and testbench
 def create_test(tb_dir: Path, work_dir: Path, top_level_module: str, rtl_dir: Path, block_name: str, simtime: int, results_names: List[str]=[], results_paths: List[str]=[]) -> Tuple[List[str], List[str]]:
-    results_names, results_paths = _make_make(work_dir, top_level_module, results_names, results_paths)
+    results_names, results_paths = _make_make(work_dir, top_level_module, block_name, results_names, results_paths)
     results_names, results_paths = _gen_tb(tb_dir, work_dir, block_name, simtime, results_names, results_paths)
     results_names, results_paths = _get_sim_portlist(rtl_dir, top_level_module, work_dir, results_names, results_paths)
     return results_names, results_paths

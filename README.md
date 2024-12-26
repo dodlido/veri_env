@@ -20,8 +20,7 @@ Of verilog projects
 ```
 
    * Fill the my_defs.sh file with your personal prefrences and variables
-   * Note that you will need to provide a github api key. Tutorial is here:
-        https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/managing-your-personal-access-tokens
+   * Note that you will need to [provide a github api key](https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/managing-your-personal-access-tokens)
 
 2. Download python's virtualenv library:
 
@@ -60,17 +59,19 @@ Of verilog projects
     pip3 install cocotb
 ```
 
-8. Install IcarusVerilog:
-        https://steveicarus.github.io/iverilog/usage/installation.html#
-
-9. Install GTKWave:
-        https://flathub.org/apps/io.github.gtkwave.GTKWave
-
-10. Install make:
+8. Install make:
 
 ```bash
     sudo apt-get install build-essential
 ```
+
+9. [Install](https://steveicarus.github.io/iverilog/usage/installation.html#) IcarusVerilog for verilog compilation
+
+10. [Install](https://flathub.org/apps/io.github.gtkwave.GTKWave) GTKWave for waveform viewing
+
+11. [Install](https://github.com/YosysHQ/yosys) yosys for synthesis
+
+12. [Install](https://ftp.gnu.org/gnu/gv/) gv for viewing a graphic representation of synthesis results
 
 ## Setting Up
 
@@ -226,6 +227,20 @@ Of verilog projects
 5. **panic**s are used as cocotb assertions that are asserted if the panic signal is high. This signals should be driven by the design to indicate error cases.
 6. **output**s are not handled in any way buy the tests at this moment
 
+## Synthesis
+1. Synthesis is based on the [yosys framework](https://github.com/YosysHQ/yosys)
+2. You can choose any cells library you would like:
+   * point to it in your own my_defs.sh file
+   * I am currently using [this one](http://www.vlsitechnology.org/synopsys/vsclib013.lib), which sadly does not support async reset ffs
+3. The syn.py script will run synthesis based on the [template script](./resources/synth_template.txt) adapted to your use case
+```bash
+    syn.py -v <view_name>
+```
+4. Use the --show flag to open gv for a graphic representation of the synthesis results
+   * Here is a representation of a 1b FF with an enable bit to select whether to sample the data or not and a sync reset:
+![where is image?](./resources/synth_results.png)
+5. syn.py will print a log that summarizes all the generated results at the end of each run
+
 ## Managing blocks
 1. Users can use the 'add' alias to add a new git repository to their on github account
 2. Users can use the 'get' alias to get to their current workspace a clone of any remote repository from their github account
@@ -235,4 +250,11 @@ Of verilog projects
    * Create a local copy of the repo at the location provided in my_defs.sh
 
 ## TODO:
-1. Implement top-level-synth
+* Fix --sim-time bug
+* Explain syn.py
+* Clean parse_args functions (standardize -w and -c flag parsing)
+* Fix get, add ugly errors
+* meld my_defs and template
+* Output log header fix
+* add defines to cfg parsing
+

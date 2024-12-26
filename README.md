@@ -238,7 +238,7 @@ Of verilog projects
 ```
 4. Use the --show flag to open gv for a graphic representation of the synthesis results
    * Here is a representation of a 1b FF with an enable bit to select whether to sample the data or not and a sync reset:
-![where is image?](./resources/synth_results.png)
+![where is image?](./resources/synth_results.jpeg)
 5. syn.py will print a log that summarizes all the generated results at the end of each run
 
 ## Managing blocks

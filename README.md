@@ -234,7 +234,7 @@ Of verilog projects
    * I am currently using [this one](http://www.vlsitechnology.org/synopsys/vsclib013.lib), which sadly does not support async reset ffs
 3. The syn.py script will run synthesis based on the [template script](./resources/synth_template.txt) adapted to your use case
 ```bash
-    syn.py -v <view_name>
+    syn -v <view_name>
 ```
 4. Use the --show flag to open gv for a graphic representation of the synthesis results
    * Here is a representation of a 1b FF with an enable bit to select whether to sample the data or not and a sync reset:

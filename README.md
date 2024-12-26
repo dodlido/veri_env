@@ -254,7 +254,6 @@ Of verilog projects
 * Explain syn.py
 * Clean parse_args functions (standardize -w and -c flag parsing)
 * Fix get, add ugly errors
-* meld my_defs and template
 * Output log header fix
 * add defines to cfg parsing
 

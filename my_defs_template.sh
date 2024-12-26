@@ -11,17 +11,19 @@ export git_ssh_key_passphrase="pass_phrase" # Passphrase to your own private ssh
 # Your name #
 export real_username="some_name_to_autograph_releases_with"
 # Paths to your personal storage #
-#export defs_path="/home/etay-sela/design/veri_tools/my_defs.sh"         # Path to this file
 export setup_path="" # Path to this file
 export rls_dir=   "" # Directory to store releases in
 export home_dir=  "" # Directory to develop in 
 export work_dir=  "" # Directory to see simulation results in
 export utils_dir= "" # Directory to my_defs.sh, and tools, py_venv folders
 export venv_dir=  "" # Directory to virtual python environment
+export yosys_dir=""  # Directory to yosys
+export libs_path=""  # Directory to cells library
 # Tools setup #
 export tools_dir="${utils_dir}/veri_env/"
 alias setup='source ${setup_path}'
 alias sim='python3 ${tools_dir}sim.py'
+alias syn='python3 ${tools_dir}syn.py'
 alias get='python3 ${tools_dir}get.py'
 alias add='python3 ${tools_dir}add.py'
 alias rls='python3 ${tools_dir}release.py'

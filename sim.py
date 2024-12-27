@@ -10,8 +10,10 @@ from utils.general import gen_validate_path
 from utils.general import gen_search_parent
 from utils.general import gen_find_cfg_file
 from utils.general import gen_outlog
+from utils.general import gen_show_ws
 from utils.getlist import getlist
 from utils.cfgparse import get_descriptor
+from utils.cfgparse import show_views
 from utils.moduleparser import get_if
 
 # parse flags:
@@ -21,7 +23,7 @@ def parse_args():
     parser = argparse.ArgumentParser(description='Simulate a given view of any design')
     parser.add_argument('-w', '--workspace', type=str, action='store', dest='ws', help='Path to workspace', required=False)
     parser.add_argument('-c', '--cfg', type=str, action='store', dest='c', help='Path to configuration file', required=False)
-    parser.add_argument('-v', '--view', type=str, action='store', dest='view', help='Desired view', required=True)
+    parser.add_argument('-v', '--view', type=str, action='store', dest='view', help='Desired view', required=False)
     parser.add_argument('--waves', action='store_true', dest='wave', help='Create waves', default=False)
     parser.add_argument('--sim-time', type=int, action='store', dest='simtime', help='simulation time for automatically generated testbench, specified in [cycles]', default=(2**16))
     parser.add_argument('--no-coco', action='store_true', dest='nococo', help='compile only, no cocotb testbench', default=False)
@@ -32,6 +34,8 @@ def parse_args():
     # parse workspace path
     if not args.ws:
         ws_path = gen_search_parent(Path.cwd().absolute(), Path(os.environ['home_dir']))
+    elif args.ws=='show':
+        gen_show_ws()
     else:
         ws_path = Path(args.ws)
         gen_validate_path(ws_path, 'locate provided workspace directory', True)
@@ -42,6 +46,11 @@ def parse_args():
     else:
         cfg_path = Path(args.c)
         gen_validate_path(cfg_path, 'locate provided configuration file')
+    
+    if not args.view:
+        gen_err('view name must be provided to simulate')
+    elif args.view=='show':
+        show_views(cfg_path)
         
     return ws_path, cfg_path, args.view, args.wave, args.simtime, args.nococo
 

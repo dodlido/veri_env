@@ -40,12 +40,24 @@ def gen_search_parent(src_path: Path, root: Path) -> Path:
 # Recursivly search configuration file from some given start path
 def gen_find_cfg_file(start_path: Path) -> Path:
     ws_path = gen_search_parent(start_path, Path(os.environ['home_dir']))
-    block_path = gen_search_parent(start_path, ws_path)
+    proj_path = gen_search_parent(start_path, ws_path)
+    block_path = gen_search_parent(start_path, proj_path / 'design')
     block_name = block_path.stem
     cfg_path = block_path / Path(f'misc/{block_name}.cfg')
     gen_validate_path(cfg_path, f'loctae configuration file of block {block_name}')
     return cfg_path
 
+# show all valid workspaces
+def gen_show_ws():
+    home_path = Path(os.environ['home_dir'])
+    message = 'available workspaces:\n'
+    for child in home_path.iterdir():
+        if child.is_dir():
+            message += f'{child}\n'
+    gen_note(message)
+    exit(0)
+
+# print output log
 def gen_outlog(names_list: List[str], paths_list: List[Path], header_content: str, failed: bool=False) -> None:
     # Check if both lists have the same length
     if len(names_list) != len(paths_list):

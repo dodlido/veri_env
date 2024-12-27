@@ -3,6 +3,7 @@ from pathlib import Path
 import configparser
 from typing import Tuple, List
 from utils.general import gen_err
+from utils.general import gen_note
 from utils.general import gen_validate_path
 
 # parses a given section in a given configuration file. view name and keys are optional 
@@ -230,3 +231,18 @@ def get_descriptor(cfg_path: Path, ws_path: str, view: str)-> Tuple[str, str, st
     top_level_module_name = _get_design(cfg, view)
 
     return project_name, block_name, top_level_module_name, rtl_dir, tb_dir, work_dir
+
+def show_views(cfg_path: Path)-> None:
+    
+    # read configuration file
+    cfg = configparser.ConfigParser()
+    cfg.read(cfg_path)
+
+    message = 'available views:\n'
+
+    for view in cfg:
+        if view!='general' and view!='path' and view!='DEFAULT': # those are not actually views
+            message += f'{view}\n'
+    
+    gen_note(message)
+    exit(0)

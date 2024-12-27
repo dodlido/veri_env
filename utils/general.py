@@ -53,7 +53,7 @@ def gen_show_ws():
     message = 'available workspaces:\n'
     for child in home_path.iterdir():
         if child.is_dir():
-            message += f'{child}\n'
+            message += f'{child.stem}\n'
     gen_note(message)
     exit(0)
 

@@ -73,7 +73,7 @@ Of verilog projects
 
 12. [Install](https://ftp.gnu.org/gnu/gv/) gv for viewing a graphic representation of synthesis results
 
-## Setting Up
+## Setup Script
 
 1. When opening a new terminal, use setup to:
    * Familiarize the terminal with the 'veri_env' tools
@@ -201,11 +201,26 @@ Of verilog projects
 ## Simulation
 1. Use sim.py for all you simulation needs
 2. Flags: 
-   * -c PATH   :  path to a configuration file, optional, if cwd is some *design block* this is not necessary
-   * -v VIEW   :  view name, required
-   * --waves   :  Open gtkwave, optional trigger 
-   * --no-coco :  Run IcarusVerilog compilation only, without simultation
-   * --sim-time:  Set simulation time for automatic testbench, specified in [cycles]
+   * -w WORKSPACE :  workspace name, optional, if cwd is within some workspace this is not necessary
+```bash
+sim -w show
+> VERI-ENV NOTE: available workspaces
+  <workspace1>
+  <workspace2>
+  ...
+```
+   * -c PATH      :  path to a configuration file, optional, if cwd is within *design block* this is not necessary
+   * -v VIEW      :  view name, required, "show" keyword will list all available views:
+```bash
+sim -v show
+> VERI-ENV NOTE: available views
+  <view1>
+  <view2>
+  ...
+```
+   * --waves      :  Open gtkwave, optional trigger 
+   * --no-coco    :  Run IcarusVerilog compilation only, without simultation
+   * --sim-time   :  Set simulation time for automatic testbench, specified in [cycles]
 3. The target directory of the simulation results is $work_dir/ws_name/block_name where $work_dir was defined in your my_defs.sh
 4. Which test will run? 
    * If sim.py found an existing testbench in the reserved path as explained in the file system section, it will use it for simulation
@@ -236,6 +251,7 @@ Of verilog projects
 ```bash
     syn -v <view_name>
 ```
+   * same -v and -w rules apply here regarding the optionallity of the flags and the "show" keyword
 4. Use the --show flag to open gv for a graphic representation of the synthesis results
    * Here is a representation of a 1b FF with an enable bit to select whether to sample the data or not and a sync reset:
 ![where is image?](./resources/synth_results.jpeg)

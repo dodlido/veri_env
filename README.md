@@ -252,7 +252,6 @@ Of verilog projects
 
 ## TODO:
 * implement "show" keyword
-* output log header fix
 * add defines to cfg parsing
 * add --pretty flag to syn
 * clean release.py

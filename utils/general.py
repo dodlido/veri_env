@@ -46,17 +46,19 @@ def gen_find_cfg_file(start_path: Path) -> Path:
     gen_validate_path(cfg_path, f'loctae configuration file of block {block_name}')
     return cfg_path
 
-def gen_outlog(names_list: List[str], paths_list: List[Path]) -> None:
+def gen_outlog(names_list: List[str], paths_list: List[Path], header_content: str, failed: bool=False) -> None:
     # Check if both lists have the same length
     if len(names_list) != len(paths_list):
         raise ValueError("The length of names_list and paths_list must be the same.")
     
     # Define the ANSI escape codes for green color
+    red = '\033[31m'
     green = '\033[32m'
+    color = red if failed else green
     reset = '\033[0m'  # Reset to default color
     
     # Prepare the header and content
-    header = "Simulation Done!!! Results:"
+    header = header_content
     content = []
     max_name_length = len(header)  # Start with the length of the header
     max_path_length = 0  # Track the max path length
@@ -84,7 +86,7 @@ def gen_outlog(names_list: List[str], paths_list: List[Path]) -> None:
     # Print the header centered in the rectangle
     blank = ""
     print(f"#{blank.ljust(total_width - 2)}#")
-    print(f"#{green}{header.center(total_width - 2)}{reset}#")
+    print(f"#{color}{header.center(total_width - 2)}{reset}#")
     print(f"#{blank.ljust(total_width - 2)}#")
     
     # Print each content line: name and path in separate lines

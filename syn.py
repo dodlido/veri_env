@@ -103,7 +103,7 @@ def _run_syn(work_dir: Path, script_path: Path, output_path: Path, results_names
     # run script
     command = f'{yosys_dir}/./yosys {script_path}'
     gen_note(f'running "{command}"')
-    subprocess.run([command], shell=True)
+    output = subprocess.run([command], shell=True)
     gen_note(f'synthesis complete, results are in {output_path}')
     results_names.append('syntesis results')
     results_paths.append(output_path)
@@ -111,7 +111,10 @@ def _run_syn(work_dir: Path, script_path: Path, output_path: Path, results_names
     # go back to original directory
     os.chdir(current_dir)
 
-    return results_names, results_paths
+    # check if simulation failed:
+    failed = output.returncode!=0
+
+    return results_names, results_paths, failed
 
 ############################
 ###                      ###
@@ -129,9 +132,10 @@ def main() -> None:
     # 3. Create yosys script in workdir
     script_path, output_path, results_names, results_paths = _create_ys_script(block_name, top_level_module, work_dir, show, results_names, results_paths)
     # 4. Run yosys script
-    results_names, results_paths = _run_syn(work_dir, script_path, output_path, results_names, results_paths)
+    results_names, results_paths, failed = _run_syn(work_dir, script_path, output_path, results_names, results_paths)
     # 5. Print log
-    gen_outlog(results_names, results_paths)
+    log_header = 'Synthesis Completed Successfully' if not failed else 'Synthesis Failed'
+    gen_outlog(results_names, results_paths, log_header, failed)
 
 ############################
 ###                      ###

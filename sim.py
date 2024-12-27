@@ -259,7 +259,6 @@ def _run(work_dir: Path, top_level_module: str, nococo: bool=False, results_name
         # run command on shell
         command = 'iverilog -s ' + top_level_module + ' -o ' + top_level_module + '_compile_results -c ' + str(fl_path) + ' -g2012'
         output = subprocess.run([command], shell=True)
-        compilation_failed = output.returncode!=0
         
         # append outputs to result list
         results_names.append('compilation output')
@@ -267,17 +266,23 @@ def _run(work_dir: Path, top_level_module: str, nococo: bool=False, results_name
         
     # cocotb flow:
     else:
+        # make
         makefile_path = work_dir / Path('makefile')
         gen_validate_path(makefile_path, f'locate makefile in {makefile_path}')
         gen_note(f'running makefile in {makefile_path}')
-        subprocess.run(['make'], shell=True)
+        output = subprocess.run(['make'], shell=True)
+
+        # append output results
         results_names.append('simulation output')
         results_paths.append(work_dir / Path('results.xml'))
-        
+            
     # cd back to original directory
     os.chdir(current_dir)
 
-    return results_names, results_paths
+    # check if simulation failed:
+    failed = output.returncode!=0
+
+    return results_names, results_paths, failed
 
 # open GTKWave
 def _wave(work_dir: str, results_names: List[str]=[], results_paths: List[str]=[]) -> Tuple[List[str], List[str]]:
@@ -311,7 +316,7 @@ def run_sim(work_dir: Path, top_level_module: str, waves: bool, nococo: bool=Fal
     if not nococo and waves:
         _add_dump_vcd(work_dir, top_level_module)
     # 1. Run makefile or icarus only
-    results_names, results_paths = _run(work_dir, top_level_module, nococo, results_names, results_paths)
+    results_names, results_paths, failed = _run(work_dir, top_level_module, nococo, results_names, results_paths)
     # 2. Open GTKWave if needed
     if not nococo and waves:
         results_names, results_paths = _wave(work_dir, results_names, results_paths)
@@ -319,7 +324,7 @@ def run_sim(work_dir: Path, top_level_module: str, waves: bool, nococo: bool=Fal
     if not nococo and waves:
         _rem_dump_vcd(work_dir, top_level_module)
     
-    return results_names, results_paths
+    return results_names, results_paths, failed
 
 ############################
 ###                      ###
@@ -338,9 +343,10 @@ def main() -> None:
     if not nococo:
         results_names, results_paths = create_test(tb_dir, work_dir, top_level_module, rtl_dir, block_name, simtime, results_names, results_paths)
     # 4. Run simulation
-    results_names, results_paths = run_sim(work_dir, top_level_module, waves, nococo, results_names, results_paths)
+    results_names, results_paths, failed = run_sim(work_dir, top_level_module, waves, nococo, results_names, results_paths)
     # 5. Print log
-    gen_outlog(results_names, results_paths)
+    log_header = 'Simulation Completed Successfully' if not failed else 'Simulation Failed'
+    gen_outlog(results_names, results_paths, log_header, failed)
 
 ############################
 ###                      ###

@@ -27,6 +27,7 @@ alias syn='python3 ${tools_dir}syn.py'
 alias get='python3 ${tools_dir}get.py'
 alias add='python3 ${tools_dir}add.py'
 alias rls='python3 ${tools_dir}release.py'
+alias blk='python3 ${tools_dir}block.py'
 ################################################
 ### Manual edit of active script ends here   ###
 ################################################

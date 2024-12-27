@@ -7,7 +7,7 @@ import os
 from utils.general import gen_err
 from utils.general import gen_note
 from utils.general import gen_validate_path
-from utils.general import gen_search_ws_path
+from utils.general import gen_search_parent
 from utils.general import gen_find_cfg_file
 from utils.general import gen_outlog
 from utils.getlist import getlist
@@ -31,10 +31,10 @@ def parse_args():
     
     # parse workspace path
     if not args.ws:
-        ws_path = gen_search_ws_path(Path.cwd().absolute())
+        ws_path = gen_search_parent(Path.cwd().absolute(), Path(os.environ['home_dir']))
     else:
         ws_path = Path(args.ws)
-        gen_validate_path(ws_path, 'locate provided workspace directory')
+        gen_validate_path(ws_path, 'locate provided workspace directory', True)
         
     # parse config path
     if not args.c:
@@ -143,15 +143,15 @@ def _gen_tb(tb_dir: Path, work_dir: Path, block_name: str, simtime: int, results
     # Paths to Testbenches
     homedir_tb_path = tb_dir / Path(block_name + '_tb.py') 
     workdir_tb_path = work_dir / Path(block_name + '_tb.py')   
-    auto_tb_path = Path(os.environ['tools_dir']) / Path('resources/auto_tb_template.txt')
+    auto_tb_path = Path(os.environ['tools_dir']) / Path('resources/auto_tb_template.py')
     
     # Generate automatic testbench:
     if not homedir_tb_path.is_file():
         gen_note(f'there is no existing testbench in {homedir_tb_path}, an automatic one will be generated')
         with open(auto_tb_path, 'r') as file:
-            tb_contents = 'work_dir = \"' + str(work_dir) + '\"\n'
-            tb_contents += f'iterations={simtime}\n'
-            tb_contents += file.read()
+            tb_contents = file.read()
+        tb_contents = tb_contents.replace('{WORK_DIR}', str(work_dir))
+        tb_contents = tb_contents.replace('{ITERATIONS}', str(simtime))
     # Get existing testbench from verification directory:
     else:
         gen_note(f'found an existing testbench in {homedir_tb_path}, this will be used for simulation')

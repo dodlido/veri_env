@@ -4,11 +4,10 @@ import subprocess
 import argparse
 from pathlib import Path
 from typing import List, Tuple
-from utils.general import gen_err
 from utils.general import gen_note
 from utils.general import gen_validate_path
 from utils.general import gen_outlog
-from utils.general import gen_search_ws_path
+from utils.general import gen_search_parent
 from utils.general import gen_find_cfg_file
 from utils.getlist import getlist
 from utils.cfgparse import get_descriptor
@@ -28,10 +27,10 @@ def parse_args():
 
     # parse workspace path
     if not args.ws:
-        ws_path = gen_search_ws_path(Path.cwd().absolute())
+        ws_path = gen_search_parent(Path.cwd().absolute(), Path(os.environ['home_dir']))
     else:
         ws_path = Path(args.ws)
-        gen_validate_path(ws_path, 'locate provided workspace directory')
+        gen_validate_path(ws_path, 'locate provided workspace directory', True)
         
     # parse config path
     if not args.c:
@@ -65,7 +64,7 @@ def _create_ys_script(block_name: str, top_level_module: str, work_dir: Path, sh
     output_path = work_dir / Path(f'{top_level_module}_synth.v')
 
     # validate template script path
-    template_path = Path(os.environ['tools_dir']) / Path('resources/synth_template.txt')
+    template_path = Path(os.environ['tools_dir']) / Path('resources/synth_template.ys')
     gen_validate_path(template_path, 'locate yosys template script')
 
     # read template and update the contents with the given parameters

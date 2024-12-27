@@ -1,28 +1,23 @@
 from pathlib import Path
-from typing import List, Tuple
-import configparser
-import subprocess
 import argparse
 import sys
 import os
 import git
 from datetime import datetime
-import time
-
-def _err(m):
-    print('Error: ' + m)
-    exit(2)
+from utils.general import gen_err
+from utils.git_funcs import clone_repo
 
 def parse_args():
+    
+    # release arguments
     parser = argparse.ArgumentParser(description='release creates a git tag in the remote repository and a local copy in your storage')
     parser.add_argument('-m', '--message', type=str, action='store', dest='m', help='Release message', required=False)
     parser.add_argument('-t', '--type', type=str, action='store', dest='t', help='Release type major/minor/standard, defaults to standard', required=False)
-    args = parser.parse_args()
-    if len(sys.argv)==0: # No flags supplied
-        parser.print_help()
-        exit(2)
-    else:
-        return args.m, args.t
+
+    # get arguments
+    args = parser.parse_args(None if sys.argv[1:] else ['-h'])
+    
+    return args.m, args.t
 
 def get_new_tag(release_type: str) -> str:
     repo = git.Repo(search_parent_directories=True)
@@ -121,17 +116,7 @@ def store(new_tag: str) -> None:
     repo_name = get_repo_name()
     repo_path = storage_base_path / Path(repo_name)
     dest_path = repo_path / Path(new_tag)
-    print(dest_path)
-    if dest_path.is_dir():
-        _err('Destination storage directory is not empty')
-    dest_path.mkdir(parents=True)
-    git.Repo.clone_from(os.environ['git_main_path'] + repo_name + '.git', dest_path)
-    if repo_name=='veri_env':
-        time.sleep(10)
-        subprocess.run(['cd ' + os.environ['utils_dir'] + '/veri_env'], shell=True)
-        subprocess.run(['git pull'], shell=True)
-        subprocess.run(['cd -'], shell=True)
-    return
+    clone_repo(repo_name, dest_path)
 
 # Usage: release.py -m <release message> --type <release type>
 def main() -> None:

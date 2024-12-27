@@ -5,14 +5,21 @@ from typing import List
 # Print note to user
 def gen_note(m: str) -> None:
     decorator = ''
-    message = 'VERI-ENV NOTE: ' + m
+    message = '\033[33mVERI-ENV NOTE:\033[0m ' + m
     print(decorator + message + decorator)
 
 # Print error message and exit
 def gen_err(m: str, code: int=1) -> None:
-    decorator = '\n##########################################################################################\n'
-    message = 'VERI-ENV ERROR:\n' + m
-    print(decorator + message + decorator)
+    
+    message_header = '\033[31mVERI-ENV ERROR:\033[0m'
+    length = len(m) + 4
+    decorator = (length * '#')
+    message_header = (f'# {message_header.ljust(length - 4 + 9)} #')
+    message = (f'# {m.ljust(length - 4)} #')
+    print(decorator)
+    print(message_header)
+    print(message)
+    print(decorator)
     exit(code)
 
 # Validate some path
@@ -22,25 +29,21 @@ def gen_validate_path(path: Path, what_failed: str='', is_dir: bool=False) -> No
     if not is_dir and not path.is_file():
         gen_err(f'file {path} does not exist, failed to {what_failed}')
 
-# Recursivly search workspace path from some given start path
-def gen_search_ws_path(start_path: Path) -> Path:
-    if os.environ['home_dir'] not in str(start_path.parent):
-        gen_err('you are currently not inside any workspace', 2)
-    p = start_path
-    while (str(p.parent)) != os.environ['home_dir']:
-        p = p.parent
-    ws_path = p
-    return ws_path
-
+# return path which is a parent of src_path and the first child of root
+def gen_search_parent(src_path: Path, root: Path) -> Path:
+    if root not in src_path.parents:
+        gen_err(f'{root} not in {src_path}', 2)
+    while src_path.parent != root:
+        src_path = src_path.parent
+    return src_path
+    
 # Recursivly search configuration file from some given start path
 def gen_find_cfg_file(start_path: Path) -> Path:
-    ws_path = gen_search_ws_path(start_path)
-    block_path = start_path
-    while block_path.parent != ws_path:
-        block_path = block_path.parent
+    ws_path = gen_search_parent(start_path, Path(os.environ['home_dir']))
+    block_path = gen_search_parent(start_path, ws_path)
     block_name = block_path.stem
     cfg_path = block_path / Path(f'misc/{block_name}.cfg')
-    gen_validate_path(cfg_path, f'loctae configuration file for block {block_name}')
+    gen_validate_path(cfg_path, f'loctae configuration file of block {block_name}')
     return cfg_path
 
 def gen_outlog(names_list: List[str], paths_list: List[Path]) -> None:

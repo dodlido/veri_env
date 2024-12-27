@@ -1,8 +1,9 @@
-import argparse
+import os
 import sys
+import argparse
 from pathlib import Path
 from utils.general import gen_validate_path
-from utils.general import gen_search_ws_path
+from utils.general import gen_search_parent
 from utils.git_funcs import clone_repo
 
 def parse_args():
@@ -17,10 +18,10 @@ def parse_args():
     
     # parse workspace path
     if not args.w:
-        ws_path = gen_search_ws_path(Path.cwd().absolute())
+        ws_path = gen_search_parent(Path.cwd().absolute(), Path(os.environ['home_dir']))
     else:
         ws_path = Path(args.w)
-        gen_validate_path(ws_path, 'locate provided workspace directory')
+        gen_validate_path(ws_path, 'locate provided workspace directory', True)
         
     # parse repo path
     repo_name = args.r

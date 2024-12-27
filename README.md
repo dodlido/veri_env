@@ -248,10 +248,11 @@ Of verilog projects
    * sign all verilog source files with the date, version and author's name
    * Create a remote tag
    * Create a local copy of the repo at the location provided in my_defs.sh
+4. Users can use the block.py script (aliased as 'blk') to create a template of a new block with a given name
 
 ## TODO:
-* add some template of block to add.py, -b flag
 * implement "show" keyword
 * output log header fix
 * add defines to cfg parsing
 * add --pretty flag to syn
+* clean release.py

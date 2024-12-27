@@ -25,12 +25,23 @@ def gen_validate_path(path: Path, what_failed: str='', is_dir: bool=False) -> No
 # Recursivly search workspace path from some given start path
 def gen_search_ws_path(start_path: Path) -> Path:
     if os.environ['home_dir'] not in str(start_path.parent):
-        gen_err('You are currently not inside any workspace', 2)
+        gen_err('you are currently not inside any workspace', 2)
     p = start_path
     while (str(p.parent)) != os.environ['home_dir']:
         p = p.parent
     ws_path = p
     return ws_path
+
+# Recursivly search configuration file from some given start path
+def gen_find_cfg_file(start_path: Path) -> Path:
+    ws_path = gen_search_ws_path(start_path)
+    block_path = start_path
+    while block_path.parent != ws_path:
+        block_path = block_path.parent
+    block_name = block_path.stem
+    cfg_path = block_path / Path(f'misc/{block_name}.cfg')
+    gen_validate_path(cfg_path, f'loctae configuration file for block {block_name}')
+    return cfg_path
 
 def gen_outlog(names_list: List[str], paths_list: List[Path]) -> None:
     # Check if both lists have the same length

@@ -9,55 +9,38 @@ from utils.general import gen_note
 from utils.general import gen_validate_path
 from utils.general import gen_outlog
 from utils.general import gen_search_ws_path
+from utils.general import gen_find_cfg_file
 from utils.getlist import getlist
 from utils.cfgparse import get_descriptor
 
 # parse flags:
 def parse_args():
+
+    # sim arguments
     parser = argparse.ArgumentParser(description='Simulate a given view of any design')
     parser.add_argument('-w', '--workspace', type=str, action='store', dest='ws', help='Path to workspace', required=False)
     parser.add_argument('-c', '--cfg', type=str, action='store', dest='c', help='Path to configuration file', required=False)
-    parser.add_argument('-v', '--view', type=str, action='store', dest='v', help='Desired view', required=True)
-    parser.add_argument('--show', action='store_true', dest='show', help='Show synthesis output using graphviz')
-    args = parser.parse_args()
-    if len(sys.argv)==0:
-        parser.print_help()
-        exit(2)
-    else:
+    parser.add_argument('-v', '--view', type=str, action='store', dest='view', help='Desired view', required=True)
+    parser.add_argument('--show', action='store_true', dest='show', help='Show synthesis output using graphviz', default=False)
+    
+    # get arguments
+    args = parser.parse_args(None if sys.argv[1:] else ['-h'])
 
-        # parse workspace path
-        if not args.ws:
-            if os.environ['home_dir'] not in str(Path.cwd()):
-                gen_err('you are currently not in a workspace and one was not provided')
-            else:
-                ws_path = gen_search_ws_path(Path.cwd().absolute())
-        else:
-            ws_path = Path(args.ws)
-            gen_validate_path(ws_path, f'locate workspace directory {ws_path}')
+    # parse workspace path
+    if not args.ws:
+        ws_path = gen_search_ws_path(Path.cwd().absolute())
+    else:
+        ws_path = Path(args.ws)
+        gen_validate_path(ws_path, 'locate provided workspace directory')
         
-        # parse config path
-        if not args.c:
-            cfg_dir, cfg_path = None, None
-            if str(Path.cwd()).split('/')[-1]=='misc':
-                cfg_dir = Path.cwd()
-            else:
-                for sub in os.walk(Path.cwd()):
-                    if sub[0].split('/')[-1]=='misc':
-                        cfg_dir = Path.cwd() / Path('misc')
-            if not cfg_dir:
-                gen_err('misc directory not found')
-            else:
-                for item in cfg_dir.iterdir():
-                    if item.suffix=='.cfg':
-                        cfg_path = Path(cfg_dir) / item
-            if not cfg_path:
-                gen_err('.cfg file not found in misc directory')
-        else:
-            cfg_path = Path(args.c)
-            if cfg_path.suffix!='.cfg':
-                gen_err('specified cfg path is invalid')
+    # parse config path
+    if not args.c:
+        cfg_path = gen_find_cfg_file(Path.cwd().absolute())
+    else:
+        cfg_path = Path(args.c)
+        gen_validate_path(cfg_path, 'locate provided configuration file')
         
-    return ws_path, cfg_path, args.v, args.show
+    return ws_path, cfg_path, args.view, args.show
 
 # update yosys script in workdir from template
 def _create_ys_script(block_name: str, top_level_module: str, work_dir: Path, show: bool=False, results_names: List[str]=[], results_paths: List[str]=[]) -> Tuple[Path, Path, List[str], List[str]]:

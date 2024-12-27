@@ -2,7 +2,7 @@
 // {MODULE_NAME}.v 
 //
 
-module {MODULE_NAME} (
+module {MODULE_NAME}_top (
     // General Signals //
     // --------------- //
     input  logic                          clk                , // clock signal

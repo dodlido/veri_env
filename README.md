@@ -251,7 +251,6 @@ Of verilog projects
 4. Users can use the block.py script (aliased as 'blk') to create a template of a new block with a given name
 
 ## TODO:
-* implement "show" keyword
 * add defines to cfg parsing
 * add --pretty flag to syn
 * clean release.py

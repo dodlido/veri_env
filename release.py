@@ -21,7 +21,7 @@ def parse_args():
     # release arguments
     parser = argparse.ArgumentParser(description='release creates a git tag in the remote repository and a local copy in your storage')
     parser.add_argument('-m', '--message', type=str, action='store', dest='m', help='Release message, can be a file as long as it ends with .txt', required=True)
-    parser.add_argument('-t', '--type', type=str, action='store', dest='t', help='Release type major/minor/standard, defaults to standard', default='standard')
+    parser.add_argument('-t', '--type', type=str, action='store', dest='t', help='Release type v(major.standard.minor), defaults to standard', default='standard')
 
     # get arguments
     args = parser.parse_args(None if sys.argv[1:] else ['-h'])

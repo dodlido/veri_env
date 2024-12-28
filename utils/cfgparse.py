@@ -79,7 +79,7 @@ def _parse_sect(config: configparser, section_name: str, view_name: str=None, on
 def _get_files(config: configparser, view: str, cfg_path: Path) -> List[Path]:
     
     # parse files partial paths from configuration
-    files, _ = _parse_sect(config, 'file', view ,True, True)
+    files, _ = _parse_sect(config, 'file', view ,True, False)
     
     # infer files full paths
     files_paths = []
@@ -91,6 +91,12 @@ def _get_files(config: configparser, view: str, cfg_path: Path) -> List[Path]:
     
     return files_paths
 
+def _get_defines(config: configparser, view: str, cfg_path: Path) -> List[str]:
+
+    # parse defines
+    defines, _ = _parse_sect(config, 'define', view, True, False)
+    return defines
+    
 # Parses 'child' section in view and returns lists of child names, paths to cfgs and view names
 def _get_children(config: configparser, view: str, child_names: List[str], child_paths: List[Path]) -> Tuple[List[str], List[Path], List[str]]:
     
@@ -177,7 +183,7 @@ def _get_design(cfg: configparser, view: str) -> str:
         gen_err(f'top module definition was not found under "design" section, use the following syntax\n\ttop=TOP_MODULE_NAME', 2)
      
 # parses through a config file, getting entire file list from all children
-def parse_cfg_rec(ws_path: Path, cfg_path: Path, view: str, file_list: List[Path] = []) -> List[Path]:
+def parse_cfg_rec(ws_path: Path, cfg_path: Path, view: str, file_list: List[Path] = [], defines_list: List[str] = []) -> Tuple[List[Path], List[str]]:
     
     # read configuration file
     cfg = configparser.ConfigParser()
@@ -187,18 +193,19 @@ def parse_cfg_rec(ws_path: Path, cfg_path: Path, view: str, file_list: List[Path
     names, paths = _get_paths(ws_path, cfg, cfg_path)
     names, paths, views = _get_children(cfg, view, names, paths)
 
-    # exit condition, names list is empty
-    if not names:
-        # return current filelist + whatever is in 'file' section
-        return file_list + _get_files(cfg, view, cfg_path) 
-    
     # not done yet, go over children names and re-call recurssion
-    else:
+    if names:
         for i,_ in enumerate(names):
             # for every children in list re-call this function
-            file_list += parse_cfg_rec(ws_path, paths[i], views[i], file_list)
+            additional_files, additional_defines = parse_cfg_rec(ws_path, paths[i], views[i], file_list)
+            file_list += additional_files
+            defines_list += additional_defines
+    
+    # append current files and defines
+    file_list += _get_files(cfg, view, cfg_path)
+    defines_list += _get_defines(cfg, view, cfg_path)
         
-        return file_list + _get_files(cfg, view, cfg_path)
+    return file_list, defines_list
            
 # generate descriptor from config file 'general' and 'design' sections
 def get_descriptor(cfg_path: Path, ws_path: str, view: str)-> Tuple[str, str, str, Path, Path, Path]:

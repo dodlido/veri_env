@@ -57,6 +57,25 @@ def gen_show_ws():
     gen_note(message)
     exit(0)
 
+# show all projects under some workspace
+def gen_show_proj(ws_path):
+    message = 'available projects:\n'
+    for proj in ws_path.iterdir():
+        if proj.is_dir():
+            message += f'{proj.stem}\n'
+    gen_note(message)
+    exit(0)
+
+# show all blocks under some project
+def gen_show_blk(proj_path):
+    message = 'available blocks:\n'
+    proj_path = proj_path / 'design'
+    for blk in proj_path.iterdir():
+        if blk.is_dir():
+            message += f'{blk.stem}\n'
+    gen_note(message)
+    exit(0)
+
 # print output log
 def gen_outlog(names_list: List[str], paths_list: List[Path], header_content: str, failed: bool=False) -> None:
     # Check if both lists have the same length

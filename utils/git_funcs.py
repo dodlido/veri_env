@@ -2,6 +2,7 @@ import requests
 import git
 import os
 import socket
+from typing import List
 from utils.general import gen_err
 from utils.general import gen_note
 
@@ -21,7 +22,7 @@ def _get_repo_path(repo_name: str) -> str:
     return git_main_path + repo_name + '.git'
 
 # get a list of github repositories
-def get_github_repositories():
+def _get_github_repositories() -> List[str]:
     
     url, token = _get_github_descriptor()
     
@@ -62,6 +63,16 @@ def _is_valid_repo_path(repo_path):
     except socket.error:
         gen_err(f"unable to reach repository at {repo_path}")
         return False
+
+# show all valid workspaces
+def show_repos():
+    message = 'available repositories:\n'
+    repos = _get_github_repositories()
+    for repo in repos:
+        repo_name = repo.split('/')[-1].split('.')[0]
+        message += f'{repo_name}\n'
+    gen_note(message)
+    exit(0)
 
 # clone a repository
 def clone_repo(repo_name, dest_path):

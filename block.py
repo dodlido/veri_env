@@ -6,14 +6,17 @@ from utils.general import gen_err
 from utils.general import gen_note
 from utils.general import gen_search_parent
 from utils.general import gen_validate_path
+from utils.general import gen_show_ws
+from utils.general import gen_show_proj
+from utils.general import gen_show_blk
 
 def parse_args():
 
     # get arguments
     parser = argparse.ArgumentParser(description='block.py : generates a block template in a given repository')
     parser.add_argument('-w', '--user-ws', type=str, action='store', dest='w', help='User specified work-space path', required=False)
-    parser.add_argument('-r', '--repo', type=str, action='store', dest='r', help='Repository to get', required=False)
-    parser.add_argument('-b', '--block-name', type=str, action='store', dest='b', help='Block name', required=True)
+    parser.add_argument('-r', '--repo', type=str, action='store', dest='r', help='Repository to append block to', required=False)
+    parser.add_argument('-b', '--block-name', type=str, action='store', dest='b', help='Block name', required=False)
 
     # get arguments
     args = parser.parse_args(None if sys.argv[1:] else ['-h'])
@@ -21,6 +24,8 @@ def parse_args():
     # parse workspace path
     if not args.w:
         ws_path = gen_search_parent(Path.cwd().absolute(), Path(os.environ['home_dir']))
+    elif args.w=='show':
+        gen_show_ws()
     else:
         ws_path = Path(args.w)
         gen_validate_path(ws_path, 'locate provided workspace directory', True)
@@ -28,10 +33,19 @@ def parse_args():
     # parse repo path
     if not args.r:
         proj_path = gen_search_parent(Path.cwd().absolute(), ws_path)
+    elif args.r=='show':
+        gen_show_proj(ws_path)
     else:
         proj_path = ws_path / Path(args.r)
         gen_validate_path(proj_path, f'locate project directory', True)
     
+    # print available blocks in project
+    if args.b=='show':
+        gen_show_blk(proj_path)
+
+    # parse block path
+    if not args.b:
+        gen_err('block name must be provided')
     block_path = proj_path / 'design' / args.b
     if block_path.is_dir():
         gen_err(f'path {block_path} is already occupied, did not override it')

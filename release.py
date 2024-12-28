@@ -9,6 +9,7 @@ import stat
 from datetime import datetime
 from utils.general import gen_err
 from utils.general import gen_note
+from utils.general import gen_validate_path
 from utils.git_funcs import get_repo_name
 from utils.git_funcs import clone_repo
 from utils.git_funcs import check_dirty
@@ -19,8 +20,8 @@ def parse_args():
     
     # release arguments
     parser = argparse.ArgumentParser(description='release creates a git tag in the remote repository and a local copy in your storage')
-    parser.add_argument('-m', '--message', type=str, action='store', dest='m', help='Release message', required=False)
-    parser.add_argument('-t', '--type', type=str, action='store', dest='t', help='Release type major/minor/standard, defaults to standard', required=False)
+    parser.add_argument('-m', '--message', type=str, action='store', dest='m', help='Release message, can be a file as long as it ends with .txt', required=True)
+    parser.add_argument('-t', '--type', type=str, action='store', dest='t', help='Release type major/minor/standard, defaults to standard', default='standard')
 
     # get arguments
     args = parser.parse_args(None if sys.argv[1:] else ['-h'])
@@ -29,8 +30,16 @@ def parse_args():
     check_cwd_for_repo() # check whether we are within a valid repository
     check_dirty() # check wheter there are any changes to commit
     check_remote_alignment() # check whether local is aligned with master
+
+    if args.m[-4:]=='.txt': # file provided
+        message_path = Path(args.m)
+        gen_validate_path(message_path, 'locate release notes')
+        with open(message_path, 'r') as file:
+            message = file.read()
+    else:
+        message = args.m
     
-    return args.m, args.t
+    return message, args.t
 
 def get_new_tag(release_type: str) -> str:
     # Open the repository
@@ -59,8 +68,8 @@ def get_new_tag(release_type: str) -> str:
         match = re.match(tag_pattern, tag_name)
         
         if match:
-            major, normal, minor = map(int, match.groups())
-            version = (major, normal ,minor)
+            major, standard, minor = map(int, match.groups())
+            version = (major, standard ,minor)
 
             if latest_version is None or version > latest_version:
                 latest_tag = tag
@@ -75,21 +84,21 @@ def get_new_tag(release_type: str) -> str:
         gen_err(f"tag '{tag_name}' is not of the form 'vX.Y.Z'")
 
     # Extract the version numbers
-    major, normal, minor = map(int, match.groups())
+    major, standard, minor = map(int, match.groups())
 
     # Update the version based on the release_type
     if release_type == "major":
         major += 1
         minor = 0  
-        normal = 0
+        standard = 0
     elif release_type == "minor":
         minor += 1
     else: 
-        normal += 1
+        standard += 1
         minor = 0 # Reset minor 
 
     # Construct the new tag name
-    new_tag = f"v{major}.{normal}.{minor}"
+    new_tag = f"v{major}.{standard}.{minor}"
     return new_tag
 
 def update_footers(new_tag: str) -> None:

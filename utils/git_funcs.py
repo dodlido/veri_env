@@ -87,8 +87,8 @@ def check_remote_alignment() -> None:
     repo = git.Repo(search_parent_directories=True)
 
     # Ensure we're checking the correct branches
-    local_master = repo.heads.main  # Local 'master' branch
-    remote_master = repo.remotes.origin.refs.main  # Remote 'origin/master' branch
+    local_master = repo.heads.master  # Local 'master' branch
+    remote_master = repo.remotes.origin.refs.master  # Remote 'origin/master' branch
 
     # Fetch the latest updates from the remote
     repo.remotes.origin.fetch()

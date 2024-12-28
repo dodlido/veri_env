@@ -267,6 +267,5 @@ sim -v show
 4. Users can use the block.py script (aliased as 'blk') to create a template of a new block with a given name
 
 ## TODO:
-* add defines to cfg parsing
 * add --pretty flag to syn
-* clean release.py
+* register file generator

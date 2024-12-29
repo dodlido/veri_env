@@ -234,32 +234,17 @@ blk -b example_blk
    4. There is no need to define offsets (unless you want to of course), the infrasturcture will handle that for you automatically
    5. There is no need to handle addresses manualy (again, unless you want to)
 4. What do you get? 
-   6. The script you wrote translates automatically in all runs to a verilog module and placed in your filelist on the fly. The module contains:
+   1. The script you wrote translates automatically in all runs to a verilog module and placed in your filelist on the fly. The module contains:
       1. A register file, with all the described registers
       2. An APB slave
       3. An APB IF for the SW to write register values to
       4. HW IF containg all the relevant ports for the HW to interact with
-   7. Do you want to view the verilog module? no problem at all:
-```bash
-reg -v view_name -verilog -o output_dir
-```
-   1. Do you want an HTML document describing the regfile? we have got you covered:
-```bash
-reg -v view_name -html -o output_dir
-```
-   1. Do you want to get the verilog instantiation of this regfile to integrate to your design? no sweat:
-```bash
-reg -v view_name -inst -o output_dir
-```
-   1. But what if I want to append the regfile instance to the top-level module of the view in an instant?
-```bash
-reg -v view_name -inst -o output_dir -a
-```
-   1. Can we do it all together? You know it!
-```bash
-reg -v view_name -inst -o output_dir -a -html -verilog
-```
-5. You can find an example script and the resulting outputs [here](./examples/regen/)
+   2. You can use the reg alias [regen script](./regen.py) to create several outputs out of the register description:
+      1. Verilog module of the register file
+      2. Verilog instantiation of the register file module
+         * this can be appended straight to your view's top module using the -a flag
+      3. HTML document describing the register file
+5. You can find an example regfile description and the resulting outputs [here](./examples/regen/)
 
 ## Simulation
 1. Use sim.py for all you simulation needs

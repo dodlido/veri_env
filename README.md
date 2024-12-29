@@ -1,12 +1,15 @@
-# veri_env
-An easy-to-use environment for:
-1. Development
-2. Version-control
-3. Compilation
-4. Simulation
-5. Verification
-6. Synthesis
-Of verilog projects
+# About veri_env
+
+This is a personal project designed to provide a CAD suite for RTL development.
+The project utilizes free software and open-source projects like IcarusVerilog, GTKWave, yosys and more to provide the user with tools to:
+1. Control and describe elaborate designs - using a basic and easy-going config language to describe, create and release blocks.
+2. Design - describe registers using an in-house register-description-language that is python based and integrates with this environment
+3. Compile - using wrappers around IcarusVerilog to seamlessly compile designs
+4. Simulation - utilizing cocotb infrastructure to provide the user with an easy way to create testbenches as well as generating automatic ones
+5. Synthesis - a flow based on the open-source yosys framework
+
+This work is a result of my personal desire to comfortably develop my designs without relying on licenses and with easy and robust flows.
+Developing this environment I drew alot of ideas and inspiration regarding what should be considered as good, comfortable flows from several engineers I got the pleasure of working with through the years. I owe these individuals a great deal of gratitude.
 
 ## Setup - first use only
 

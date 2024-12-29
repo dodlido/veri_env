@@ -6,6 +6,7 @@ from utils.general import gen_err
 from utils.general import gen_note
 from utils.general import gen_validate_path
 
+
 # parses a given section in a given configuration file. view name and keys are optional 
 def _parse_sect(config: configparser, section_name: str, view_name: str=None, only_keys: bool=False, required=True)-> Tuple[List[str], List[str]]:
     keys, values = [], []
@@ -91,11 +92,24 @@ def _get_files(config: configparser, view: str, cfg_path: Path) -> List[Path]:
     
     return files_paths
 
-def _get_defines(config: configparser, view: str, cfg_path: Path) -> List[str]:
+def _get_defines(config: configparser, view: str) -> List[str]:
 
     # parse defines
     defines, _ = _parse_sect(config, 'define', view, True, False)
     return defines
+
+def _get_regs(config: configparser, view: str, cfg_path: Path) -> List[Path]:
+    regs_full_paths = []
+    # parse 'regs' section
+    regs_paths, _ = _parse_sect(config, 'regs', view, True, False)
+
+    # validate paths
+    for reg_path in regs_paths:
+        reg_full_path = cfg_path.parent.parent / reg_path
+        gen_validate_path(reg_full_path, 'locate regs file while generating filelist')
+        regs_full_paths.append(reg_full_path)
+    
+    return regs_full_paths
     
 # Parses 'child' section in view and returns lists of child names, paths to cfgs and view names
 def _get_children(config: configparser, view: str, child_names: List[str], child_paths: List[Path]) -> Tuple[List[str], List[Path], List[str]]:
@@ -182,8 +196,43 @@ def _get_design(cfg: configparser, view: str) -> str:
     if not top_level_name:
         gen_err(f'top module definition was not found under "design" section, use the following syntax\n\ttop=TOP_MODULE_NAME', 2)
      
+def get_top_rgf_path(cfg_path: Path, view: str) -> Path:
+
+    # read configuration file
+    cfg = configparser.ConfigParser()
+    cfg.read(cfg_path)
+
+    # get RGF path
+    paths_list = _get_regs(cfg, view, cfg_path)
+    if len(paths_list)!=1:
+        gen_err(f'found to many RGFs in view {view}: {paths_list}')
+    
+    return paths_list[0]
+
+def get_top_level_path(cfg_path: Path, view: str) -> Path:
+
+    # read configuration file
+    cfg = configparser.ConfigParser()
+    cfg.read(cfg_path)
+
+    # get top level
+    top_level_name = _get_design(cfg, view)
+
+    # get files
+    files = _get_files(cfg, view, cfg_path)
+
+    # find module with stem that matches top level name
+    module_names = []
+    for f in files:
+        module_names.append(f.stem)
+    if top_level_name not in module_names:
+        gen_err(f'top level {top_level_name} not found in filelist: {files}')
+    top_level_path = files[module_names.index(top_level_name)]
+
+    return top_level_path
+
 # parses through a config file, getting entire file list from all children
-def parse_cfg_rec(ws_path: Path, cfg_path: Path, view: str, file_list: List[Path] = [], defines_list: List[str] = []) -> Tuple[List[Path], List[str]]:
+def parse_cfg_rec(ws_path: Path, cfg_path: Path, view: str, file_list: List[Path] = [], defines_list: List[str] = [], regs_list=[]) -> Tuple[List[Path], List[str], List[Path]]:
     
     # read configuration file
     cfg = configparser.ConfigParser()
@@ -197,47 +246,17 @@ def parse_cfg_rec(ws_path: Path, cfg_path: Path, view: str, file_list: List[Path
     if names:
         for i,_ in enumerate(names):
             # for every children in list re-call this function
-            additional_files, additional_defines = parse_cfg_rec(ws_path, paths[i], views[i], file_list)
+            additional_files, additional_defines, additional_regs = parse_cfg_rec(ws_path, paths[i], views[i], file_list, defines_list, regs_list)
             file_list += additional_files
             defines_list += additional_defines
+            regs_list += additional_regs
     
     # append current files and defines
     file_list += _get_files(cfg, view, cfg_path)
-    defines_list += _get_defines(cfg, view, cfg_path)
+    defines_list += _get_defines(cfg, view)
+    regs_list += _get_regs(cfg, view, cfg_path)
         
-    return file_list, defines_list
-           
-# generate descriptor from config file 'general' and 'design' sections
-def get_descriptor(cfg_path: Path, ws_path: str, view: str)-> Tuple[str, str, str, Path, Path, Path]:
-
-    # read configuration file
-    cfg = configparser.ConfigParser()
-    cfg.read(cfg_path)
-
-    # parse 'general' section
-    keys, values = _parse_sect(cfg, 'general', None, False, True)
-
-    # check for 'block' definition under 'general'
-    for i, key in enumerate(keys):
-        # found top key
-        if 'block' in key:
-            block_value = values[i]
-
-    # check validity of 'block' key
-    if block_value.count('/')!=2:
-        gen_err(f'syntax error in value ({block_value}) of "block" key under "general" section, please use the following syntax\n\tblock=project_name/design/block_name')
-
-    block_value = block_value.split('/')
-    project_name, block_name = block_value[0], block_value[2]
-
-    # Important directories
-    rtl_dir   = ws_path / project_name / 'design'       / block_name / 'rtl'
-    tb_dir    = ws_path / project_name / 'verification' / block_name / 'tests'
-    work_dir  = Path(os.environ['work_dir']) / str(ws_path).split('/')[-1] / project_name / block_name
-
-    top_level_module_name = _get_design(cfg, view)
-
-    return project_name, block_name, top_level_module_name, rtl_dir, tb_dir, work_dir
+    return file_list, defines_list, regs_list
 
 def show_views(cfg_path: Path)-> None:
     

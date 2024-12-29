@@ -1,0 +1,154 @@
+<html><head><title>Register File</title>
+        <style>
+            /* Import Google Fonts */
+            @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap');
+        
+            body { font-family: 'Roboto', sans-serif; }
+            h1, h2, h3 { 
+                padding: 10px; 
+                font-weight: 700;
+            }
+            
+            /* Color scheme: shades of blue */
+            h1 { background-color: #4A90E2; color: white; }
+            h2 { background-color: #357ABD; color: white; }
+            h3 { background-color: #2C6BA2; color: white; }
+
+            p { 
+                margin-left: 20px; 
+                font-weight: 400;
+            }
+
+            /* Collapsible content style */
+            .collapsible-content {
+                margin-left: 30px;
+                display: none;  /* Hidden by default */
+                margin-top: 10px;
+            }
+
+            .collapsible-button {
+                cursor: pointer;
+                padding: 10px;
+                color: white;
+                border: none;
+                background-color: #357ABD;
+                text-align: left;
+                width: 100%;
+            }
+            
+            .collapsible-button:hover {
+                background-color: #2C6BA2;
+            }
+
+            /* Make Middle and Bottom Class buttons and content slightly larger */
+            .middle-class-button, .bottom-class-button {
+                font-size: 24px;  /* Larger font size for buttons */
+            }
+
+            .middle-class-content, .bottom-class-content {
+                font-size: 18px;  /* Slightly larger content font size */
+            }
+        </style>
+        
+        <script>
+        // Function to toggle the visibility of collapsible content
+        function toggleVisibility(id) {
+            var content = document.getElementById(id);
+            if (content.style.display === "none" || content.style.display === "") {
+                content.style.display = "block"; // Make it visible
+            } else {
+                content.style.display = "none"; // Hide it
+            }
+        }
+        </script>
+        <h1>example_rgf</h1><p><b>Description:</b> example register file</p><p><b>Address Space:</b> 0x8</p>
+            <button class="collapsible-button middle-class-button" onclick="toggleVisibility('reg_0')">Register: frame_dims</button>
+            <div id="reg_0" class="collapsible-content">
+            <p><b>Description:</b> frame dimensions register</p>
+            <p><b>Address:</b> 0</p>
+            <p><b>Width:</b> 32</p>
+            
+                <button class="collapsible-button bottom-class-button" onclick="toggleVisibility('bottom_0_0')">Field: n_col</button>
+                <div id="bottom_0_0" class="collapsible-content">
+                <p><b>Description:</b> number of pixels in row</p>
+                <p><b>Width:</b> 16</p>
+                <p><b>Offset:</b> 0</p>
+                <p><b>Reset Value:</b> 0</p>
+                <p><b>HW write permission:</b> False</p>
+                <p><b>HW read permission:</b> True</p>
+                <p><b>SW write permission:</b> True</p>
+                <p><b>SW read permission:</b> True</p>
+                </div>
+                
+                <button class="collapsible-button bottom-class-button" onclick="toggleVisibility('bottom_0_1')">Field: n_row</button>
+                <div id="bottom_0_1" class="collapsible-content">
+                <p><b>Description:</b> number of rows in frame</p>
+                <p><b>Width:</b> 16</p>
+                <p><b>Offset:</b> 16</p>
+                <p><b>Reset Value:</b> 0</p>
+                <p><b>HW write permission:</b> False</p>
+                <p><b>HW read permission:</b> True</p>
+                <p><b>SW write permission:</b> True</p>
+                <p><b>SW read permission:</b> True</p>
+                </div>
+                </div>
+            <button class="collapsible-button middle-class-button" onclick="toggleVisibility('reg_1')">Register: general_cfg</button>
+            <div id="reg_1" class="collapsible-content">
+            <p><b>Description:</b> general configurations</p>
+            <p><b>Address:</b> 4</p>
+            <p><b>Width:</b> 32</p>
+            
+                <button class="collapsible-button bottom-class-button" onclick="toggleVisibility('bottom_1_0')">Field: clk_en</button>
+                <div id="bottom_1_0" class="collapsible-content">
+                <p><b>Description:</b> clock enable</p>
+                <p><b>Width:</b> 1</p>
+                <p><b>Offset:</b> 0</p>
+                <p><b>Reset Value:</b> 0</p>
+                <p><b>HW write permission:</b> False</p>
+                <p><b>HW read permission:</b> True</p>
+                <p><b>SW write permission:</b> True</p>
+                <p><b>SW read permission:</b> True</p>
+                </div>
+                
+                <button class="collapsible-button bottom-class-button" onclick="toggleVisibility('bottom_1_1')">Field: rgb_mode</button>
+                <div id="bottom_1_1" class="collapsible-content">
+                <p><b>Description:</b> RGB mode enable</p>
+                <p><b>Width:</b> 1</p>
+                <p><b>Offset:</b> 8</p>
+                <p><b>Reset Value:</b> 0</p>
+                <p><b>HW write permission:</b> False</p>
+                <p><b>HW read permission:</b> True</p>
+                <p><b>SW write permission:</b> True</p>
+                <p><b>SW read permission:</b> True</p>
+                </div>
+                </div>
+            <button class="collapsible-button middle-class-button" onclick="toggleVisibility('reg_2')">Register: loc_sts</button>
+            <div id="reg_2" class="collapsible-content">
+            <p><b>Description:</b> current location in frame</p>
+            <p><b>Address:</b> 8</p>
+            <p><b>Width:</b> 32</p>
+            
+                <button class="collapsible-button bottom-class-button" onclick="toggleVisibility('bottom_2_0')">Field: col_ptr</button>
+                <div id="bottom_2_0" class="collapsible-content">
+                <p><b>Description:</b> pointer to current pixel in row</p>
+                <p><b>Width:</b> 16</p>
+                <p><b>Offset:</b> 0</p>
+                <p><b>Reset Value:</b> 0</p>
+                <p><b>HW write permission:</b> True</p>
+                <p><b>HW read permission:</b> True</p>
+                <p><b>SW write permission:</b> False</p>
+                <p><b>SW read permission:</b> False</p>
+                </div>
+                
+                <button class="collapsible-button bottom-class-button" onclick="toggleVisibility('bottom_2_1')">Field: row_ptr</button>
+                <div id="bottom_2_1" class="collapsible-content">
+                <p><b>Description:</b> pointer to current row number</p>
+                <p><b>Width:</b> 16</p>
+                <p><b>Offset:</b> 16</p>
+                <p><b>Reset Value:</b> 0</p>
+                <p><b>HW write permission:</b> True</p>
+                <p><b>HW read permission:</b> True</p>
+                <p><b>SW write permission:</b> False</p>
+                <p><b>SW read permission:</b> False</p>
+                </div>
+                </div></body></html>

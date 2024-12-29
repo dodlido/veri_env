@@ -2,8 +2,35 @@ import os
 from pathlib import Path
 import numpy as np
 import math
-from typing import List
+from typing import List, Tuple
 from utils.general import gen_err
+
+########################
+### Helper Functions ###
+########################
+
+def permissions_to_bit_str(permission: bool)->str:
+    return '1\'b1' if permission else '1\'b0'
+
+def create_port(direction: str, width: int, rgf_name: str, reg_name: str, field_name: str, suffix: str=None, commnet: str=None)->Tuple[str, str, str]:
+    # parse signal name
+    sig_name = f'{rgf_name}_{reg_name}_{field_name}'
+    if suffix:
+        sig_name += f'_{suffix}'
+    
+    module_port = f'{direction} logic [{width}-1:0] {sig_name}, // '
+    instance_port = f'.{sig_name}({sig_name}), // '
+    
+    if commnet:
+        temp_comment = f'{rgf_name}_{reg_name}_{field_name}: {commnet}'
+        module_port += temp_comment
+        instance_port += temp_comment + f' , {direction}({width}b)'
+
+    return module_port, instance_port
+
+###############
+### Classes ###
+###############
 
 class Address(object):
     def __init__(self, byte_address: int=0):
@@ -66,14 +93,20 @@ class Field(object):
         }
 
     def get_verilog_ports(self, regfile_name: str, register_name: str) -> List[str]:
-        port_list = []
+        module_ports, instance_ports = [], []
         if self.permissions.hw_rd:
-            port_list.append(f'output logic [{self.width}-1:0] {regfile_name}_{register_name}_{self.name},')
+            mps, ips = create_port('output', self.width, regfile_name, register_name, self.name, None, 'HW read port')
+            module_ports.append(mps)
+            instance_ports.append(ips)
         if self.permissions.hw_wr:
-            port_list.append(f'input logic [{self.width}-1:0] {regfile_name}_{register_name}_{self.name}_hw_next,')
+            mps, ips = create_port('input', self.width, regfile_name, register_name, self.name, 'hw_next', 'HW write port')
+            module_ports.append(mps)
+            instance_ports.append(ips)
         if self.we:
-            port_list.append(f'input logic {regfile_name}_{register_name}_{self.name}_hw_we,')
-        return port_list
+            mps, ips = create_port('input', self.width, regfile_name, register_name, self.name, 'hw_we', 'HW write enable bit')
+            module_ports.append(mps)
+            instance_ports.append(ips)
+        return module_ports, instance_ports
     
     def get_verilog_ff(self, regfile_name: str, register_name: str, register_address: Address) -> str:
         
@@ -82,32 +115,36 @@ class Field(object):
         with open(template_path, 'r') as template:
             ff = template.read()
         
-        # parse SW WR permissions
-        sw_wr_per_str = '1\'b1' if self.permissions.sw_wr else '1\'b0'
-        
-        # parse HW WR permissions
-        hw_wr_per_str = '1\'b1' if self.permissions.hw_wr else '1\'b0'
+        # parse permissions
+        sw_wr_per_str = permissions_to_bit_str(self.permissions.sw_wr)
+        hw_wr_per_str = permissions_to_bit_str(self.permissions.hw_wr)
 
         # choose between internal and external HW we
         hw_int_we_str = '{regfile_name}_{register_name}_{self.name}_hw_we' if self.we else '1\'b1'
 
         # mask HW write option in case of no permissions
-        mask_hw_wr_str = '//          ' if not self.permissions.hw_wr else '            '
+        mask_hw_wr_str = '//' if not self.permissions.hw_wr else '  '
                                                                             
-        # replace parameters with actual values
-        ff = ff.replace('{RGF_NAME}', regfile_name)
-        ff = ff.replace('{REG_NAME}', register_name)
-        ff = ff.replace('{FLD_NAME}', self.name)
-        ff = ff.replace('{FLD_SW_WR}', sw_wr_per_str)
-        ff = ff.replace('{FLD_HW_WR}', hw_wr_per_str)
-        ff = ff.replace('{FLD_OFFSET}', f'{self.offset}')
-        ff = ff.replace('{FLD_ENDBIT}', f'{self.offset + self.width - 1}')
-        ff = ff.replace('{FLD_WIDTH}', f'{self.width}')
-        ff = ff.replace('{REG_ADD}', f"ADD_W'({register_address.byte_address})")
-        ff = ff.replace('{REG_HEX_ADD}', f"{register_address.get_hex_address()}")
-        ff = ff.replace('{FLD_HW_WE_INT}', hw_int_we_str)
-        ff = ff.replace('{FLD_RST_VAL}', f'{self.width}\'h{self.reset_val}')
-        ff = ff.replace('{MASK_HW_WR}', mask_hw_wr_str)
+        # replacement dictionary
+        rep_dict = {
+            '{RGF_NAME}': regfile_name,
+            '{REG_NAME}': register_name,
+            '{FLD_NAME}': self.name,
+            '{FLD_SW_WR}': sw_wr_per_str,
+            '{FLD_HW_WR}': hw_wr_per_str,
+            '{FLD_OFFSET}': f'{self.offset}',
+            '{FLD_ENDBIT}': f'{self.offset + self.width - 1}',
+            '{FLD_WIDTH}': f'{self.width}',
+            '{REG_ADD}': f"ADD_W'({register_address.byte_address})",
+            '{REG_HEX_ADD}': f"{register_address.get_hex_address()}",
+            '{FLD_HW_WE_INT}': hw_int_we_str,
+            '{FLD_RST_VAL}': f'{self.width}\'h{self.reset_val}',
+            '{MASK_HW_WR}': mask_hw_wr_str
+        }
+        
+        # go over dictionary, replacing all keys with values
+        for key, value in rep_dict.items():
+            ff= ff.replace(key, value)
 
         return ff
     
@@ -193,10 +230,12 @@ class Register(object):
         return ffs + master_wire_declaration + master_wire_assignment
     
     def get_verilog_ports(self, regfile_name: str) -> List[str]:
-        port_list = []
+        module_ports, instance_ports = [], []
         for fld in self.fields:
-            port_list += fld.get_verilog_ports(regfile_name, self.name)
-        return port_list
+            mps, ips = fld.get_verilog_ports(regfile_name, self.name)
+            module_ports += mps
+            instance_ports += ips
+        return module_ports, instance_ports
 
 class RegFile(object):
     def __init__(self, name: str='regfile', description='some description', registers: List[Register]=[]):
@@ -251,10 +290,12 @@ class RegFile(object):
         self.runnin_address = Address(self.running_address.get_next_address())
 
     def get_verilog_ports(self) -> List[str]:
-        port_list = []
+        module_ports, instance_ports = [], []
         for reg in self.registers:
-            port_list += reg.get_verilog_ports(self.name)
-        return port_list      
+            mps, ips = reg.get_verilog_ports(self.name)
+            module_ports += mps
+            instance_ports += ips
+        return module_ports, instance_ports
     
     def get_html(self):
         # Start the HTML document
@@ -380,7 +421,7 @@ class RegFile(object):
         for reg in self.registers:
             rgf_content += reg.get_verilog_ffs(self.name) + '\n\n'
             output_mux += f'ADD_W\'({reg.address.byte_address}): prdata = {self.name}_{reg.name} ;\n   '
-        port_list = self.get_verilog_ports()
+        port_list, _ = self.get_verilog_ports()
         for port in port_list:
             port_content += f'{port}\n   '
         
@@ -398,5 +439,21 @@ class RegFile(object):
         rgf_verilog = rgf_verilog.replace('{RGF_NAME}', f'{self.name}')
         
         return rgf_verilog
+    
+    def get_inst(self) -> str:
+
+        _, port_list = self.get_verilog_ports()
+        port_string = ''
+        for port in port_list:
+            port_string += f'   {port}\n'
+        
+        template_path = Path(os.environ['tools_dir']) / 'regen' / 'rgf_inst_template.v'
+        with open(template_path, 'r') as template:
+            inst = template.read()
+        
+        inst = inst.replace('{RGF_NAME}', f'{self.name}')
+        inst = inst.replace('{RGF_PORTS}', port_string)
+        return inst
+
     
 

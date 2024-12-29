@@ -102,30 +102,22 @@ Of verilog projects
       - For each *design block* there could be a folder under the *verification* tree which contains:
          - a folder named *tests* which contains a cocotb testbench named "block_name_tb.py"
          - any number of folders and scripts that "block_name_tb.py" needs to function
-6. You can browse an example workspace in the "exampl_ws" folder in this repository
-
+6. You can browse an example workspace in the [exampl_ws](./examples/example_ws/) folder in this repository
 ```bash
-.
-├── aligners
-│   ├── design
-│   │   └── al_w2n
-│   │       ├── misc
-│   │       │   └── al_w2n.cfg
-│   │       └── rtl
-│   │           └── al_w2n.v
-│   └── verification
-│       └── al_w2n
-│           ├── models
-│           │   └── al_w2n_model.py
-│           └── tests
-│               └── al_w2n_tb.py
-└── vlib
+example_ws
+└── example_project
     └── design
-        └── cnt_cfg_lim
+        └── example_block
             ├── misc
-            │   └── cnt_cfg_lim.cfg
+            │   └── example_block.cfg
+            ├── regs
+            │   └── example_block_rgf.py
             └── rtl
-                └── cnt_cfg_lim.v
+                └── example_block_top.v
+```
+7. You can always create an example block at your own workspace:
+```bash
+blk -b example_blk
 ```
 
 ## Configuration syntax
@@ -181,7 +173,9 @@ Of verilog projects
    * *section*s that are not [general] or [path] are referred to as **view**s
    * Each **view** can contain up to 3 reserved *key*s:
       * **design** defines the top module of the view:
+      * **define** adds defines (macro directives `define) of all provided keys to the compilation tree
       * **child** defines the **children** **view**s used in this **view**
+      * **regs** Regen defined registers file, see explanation below
       * **file** defines the filelist the **view** utilizes (from this *design block* only, without referring to **children**) 
    
    ```cfg
@@ -191,12 +185,81 @@ Of verilog projects
          child:
             <project1_name>/design/<block1_name>=<view1_name>
             <project2_name>/design/<block2_name>=<view2_name>
+         regs:
+            regs/<block_name>_rgf.py
          file:
             <rtl/file1.v>
             <rtl/file2.v>
             ...
       ;
    ```
+
+## Regen - Register Description Language
+1. This environment offers a register description language for the user
+2. The language presents the following classes:
+   1. AccessPermissions - defines the access permissions of anything. Attributes:
+      1. sw_rd, bool - SW read permissions
+      2. sw_wr, bool - SW write permissions
+      3. hw_rd, bool - HW read permissions
+      2. hw_wr, bool - HW write permissions
+   2. Field - a field is a collection of bits. Attributes:
+      1. name       , str               - the field's name
+      2. description, str               - the field's description
+      3. permissions, AccessPermissions - the field's access permissions
+      4. width      , int               - the field's width in bits
+      5. offset     , int               - the field's offset within a register
+      6. reset_val  , int               - the field's reset value
+      7. we         , bool              - whether the field gets an external HW write-enable bit
+         1. CfgField - a subclass of Field, (HW RD, SW WR+RD) permissions
+         2. StsField - a subclass of Field, (HW WR+RD, SW RD) permissions
+   3. Address - address within the register file. single attribute - byte_address.
+   4. Register - a collection of fields. Attributes:
+      1. name          , str             - the register's name
+      2. description   , str             - the register's description
+      3. width         , int             - the register's width in bits
+      4. address       , Address         - the register's address within a register file
+      5. fields        , List[Field]     - a list of the fields in the register
+      6. occupied_bmap , ndarray(width,) - a bitmap of occupied bits within the register  
+   5. RegFile - a collection of registers. Attributes:
+      1. name           , str            - the regfile's name
+      2. description    , str            - the regfile's description
+      3. registers      , List[Register] - a list of the registers in the regfile
+      4. runnig_address , Address        - a pointer to the next non-occupied address in the register map
+      5. rgf_addr_width , int            - address space width in bits
+      6. rgf_reg_width  , int            - regfile register width, determined by the widest register
+3. Usage:
+   1. The register description script should be placed under the 'regs' subfolder of the block.
+   2. The register description script should be reffered to in the relevant view in the config under the "regs" section.
+   3. In the script, define a single RegFile, with a name matching the script name, by building it from: Fields --> Registers --> RegFile
+   4. There is no need to define offsets (unless you want to of course), the infrasturcture will handle that for you automatically
+   5. There is no need to handle addresses manualy (again, unless you want to)
+4. What do you get? 
+   6. The script you wrote translates automatically in all runs to a verilog module and placed in your filelist on the fly. The module contains:
+      1. A register file, with all the described registers
+      2. An APB slave
+      3. An APB IF for the SW to write register values to
+      4. HW IF containg all the relevant ports for the HW to interact with
+   7. Do you want to view the verilog module? no problem at all:
+```bash
+reg -v view_name -verilog -o output_dir
+```
+   1. Do you want an HTML document describing the regfile? we have got you covered:
+```bash
+reg -v view_name -html -o output_dir
+```
+   1. Do you want to get the verilog instantiation of this regfile to integrate to your design? no sweat:
+```bash
+reg -v view_name -inst -o output_dir
+```
+   1. But what if I want to append the regfile instance to the top-level module of the view in an instant?
+```bash
+reg -v view_name -inst -o output_dir -a
+```
+   1. Can we do it all together? You know it!
+```bash
+reg -v view_name -inst -o output_dir -a -html -verilog
+```
+5. You can find an example script and the resulting outputs [here](./examples/regen/)
 
 ## Simulation
 1. Use sim.py for all you simulation needs
@@ -254,7 +317,7 @@ sim -v show
    * same -v and -w rules apply here regarding the optionallity of the flags and the "show" keyword
 4. Use the --show flag to open gv for a graphic representation of the synthesis results
    * Here is a representation of a 1b FF with an enable bit to select whether to sample the data or not and a sync reset:
-![where is image?](./resources/synth_results.jpeg)
+![where is image?](./examples/images/synth_results.jpeg)
 5. syn.py will print a log that summarizes all the generated results at the end of each run
 
 ## Managing blocks
@@ -268,4 +331,4 @@ sim -v show
 
 ## TODO:
 * add --pretty flag to syn
-* register file generator
+* add examples of taking block from different locations, different views, stub view using rtl view

@@ -1,6 +1,6 @@
 import os
 from pathlib import Path
-from typing import List
+from typing import List, Tuple
 
 # Print note to user
 def gen_note(m: str) -> None:
@@ -37,14 +37,43 @@ def gen_search_parent(src_path: Path, root: Path) -> Path:
         src_path = src_path.parent
     return src_path
     
-# Recursivly search configuration file from some given start path
-def gen_find_cfg_file(start_path: Path) -> Path:
-    ws_path = gen_search_parent(start_path, Path(os.environ['home_dir']))
-    proj_path = gen_search_parent(start_path, ws_path)
-    block_path = gen_search_parent(start_path, proj_path / 'design')
-    block_name = block_path.stem
-    cfg_path = block_path / Path(f'misc/{block_name}.cfg')
-    gen_validate_path(cfg_path, f'loctae configuration file of block {block_name}')
+# infer configuration path
+def gen_find_cfg_file(given_cfg_path: Path=None, ws: str=None, project: str=None, block: str=None) -> Path:
+    
+    ### configuration path inferring process ###
+
+    if given_cfg_path: # option 1 - config path specified 
+        cfg_path = Path(given_cfg_path)
+        gen_validate_path(cfg_path, 'locate provided configuration file')
+    
+    else: # option 2 - some form of the workspace-->project-->block triplet should have been specified or inferred
+        # step 1 - infer workspace
+        if not ws: # workspace was not provided --> we must be in one
+            ws_path = gen_search_parent(Path.cwd().absolute(), Path(os.environ['home_dir']))
+        elif ws=='show': # workspace 'show' option
+            gen_show_ws()
+        else: # workspace is provided
+            ws_path = Path(ws)
+            gen_validate_path(ws_path, 'locate provided workspace directory', True)
+        # step 2 - infer project
+        if not project: # project was not provided --> we must be in one
+            project_path = gen_search_parent(Path.cwd().absolute(), ws_path)
+        elif project=='show': # project 'show' option provided
+            gen_show_proj(ws_path)
+        else: # project is provided
+            project_path = ws_path / project
+            gen_validate_path(project_path, 'project path was not found', True)
+        # step 3 - infer block
+        if not block: # block not specified --> we must be in one
+            block_path = gen_search_parent(Path.cwd().absolute(), (project_path / 'design'))
+            gen_validate_path(block_path, 'block path was not found', True)
+        elif block=='show': # block show chosen
+            gen_show_blk(project_path)
+        else: # block name is provided
+            block_path = project_path / 'design' / block
+        cfg_path = block_path / 'misc' / f'{block_path.stem}.cfg'
+        gen_validate_path(cfg_path, 'locate inferred configuration path')
+
     return cfg_path
 
 # show all valid workspaces
@@ -129,3 +158,19 @@ def gen_outlog(names_list: List[str], paths_list: List[Path], header_content: st
     # Print the bottom border
     print('#' * total_width)
     
+# generate descriptor from config file 'general' and 'design' sections
+def gen_get_descriptor(cfg_path: Path, view: str)-> Tuple[str, str, str, Path, Path, Path]:
+
+    # infer ws, project, block triplet
+    block_path = cfg_path.parent.parent
+    project_path = block_path.parent.parent
+    ws_path = project_path.parent
+    block_name = block_path.stem
+    project_name = project_path.stem
+    
+    # Important directories
+    rtl_dir   = ws_path / project_name / 'design'       / block_name / 'rtl'
+    tb_dir    = ws_path / project_name / 'verification' / block_name / 'tests'
+    work_dir  = Path(os.environ['work_dir']) / str(ws_path).split('/')[-1] / project_name / block_name
+
+    return ws_path, project_name, block_name, rtl_dir, tb_dir, work_dir

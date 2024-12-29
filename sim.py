@@ -10,49 +10,48 @@ from utils.general import gen_validate_path
 from utils.general import gen_search_parent
 from utils.general import gen_find_cfg_file
 from utils.general import gen_outlog
+from utils.general import gen_show_proj
 from utils.general import gen_show_ws
+from utils.general import gen_show_blk
+from utils.general import gen_get_descriptor
 from utils.getlist import getlist
-from utils.cfgparse import get_descriptor
 from utils.cfgparse import show_views
+from utils.cfgparse import get_top_level_path
 from utils.moduleparser import get_if
+from utils.git_funcs import show_repos
 
 # parse flags:
 def parse_args():
 
-    # sim arguments
     parser = argparse.ArgumentParser(description='Simulate a given view of any design')
-    parser.add_argument('-w', '--workspace', type=str, action='store', dest='ws', help='Path to workspace', required=False)
-    parser.add_argument('-c', '--cfg', type=str, action='store', dest='c', help='Path to configuration file', required=False)
-    parser.add_argument('-v', '--view', type=str, action='store', dest='view', help='Desired view', required=False)
+    # config location - option 1 - specify the config path itself
+    group1 = parser.add_mutually_exclusive_group(required=False)
+    group1.add_argument('-c', '--cfg', type=str, action='store', dest='c', help='Block Location Option 1 - provide a path to configuration file', required=False)
+    # config location - option 2 - specify the workspace-->project-->block triplet
+    group2 = parser.add_mutually_exclusive_group(required=False)
+    group2.add_argument('-w', '--workspace', type=str, action='store', dest='ws', help='Block Location Option 2 - Path to workspace , not needed if within a workspace       , "show" to display options', required=False)
+    group2.add_argument('-p', '--project', type=str, action='store', dest='p'   , help='Block Location Option 2 - Project name      , not needed if you are within a project , "show" to display options', required=False)
+    group2.add_argument('-b', '--block-name', type=str, action='store', dest='b', help='Block Location Option 2 - Block name        , not needed if you are within a block   , "show" to display options', required=False)
+    # view name - a must
+    parser.add_argument('-v', '--view', type=str, action='store', dest='view', help='Desired view, "show" to display options', required=False)
+    # optional triggers
     parser.add_argument('--waves', action='store_true', dest='wave', help='Create waves', default=False)
     parser.add_argument('--sim-time', type=int, action='store', dest='simtime', help='simulation time for automatically generated testbench, specified in [cycles]', default=(2**16))
     parser.add_argument('--no-coco', action='store_true', dest='nococo', help='compile only, no cocotb testbench', default=False)
     
     # get arguments
     args = parser.parse_args(None if sys.argv[1:] else ['-h'])
-    
-    # parse workspace path
-    if not args.ws:
-        ws_path = gen_search_parent(Path.cwd().absolute(), Path(os.environ['home_dir']))
-    elif args.ws=='show':
-        gen_show_ws()
-    else:
-        ws_path = Path(args.ws)
-        gen_validate_path(ws_path, 'locate provided workspace directory', True)
+
+    # find cfg path 
+    cfg_path = gen_find_cfg_file(args.c, args.ws, args.p, args.b)
         
-    # parse config path
-    if not args.c:
-        cfg_path = gen_find_cfg_file(Path.cwd().absolute())
-    else:
-        cfg_path = Path(args.c)
-        gen_validate_path(cfg_path, 'locate provided configuration file')
-    
+    # parse view name #
     if not args.view:
         gen_err('view name must be provided to simulate')
     elif args.view=='show':
         show_views(cfg_path)
         
-    return ws_path, cfg_path, args.view, args.wave, args.simtime, args.nococo
+    return cfg_path, args.view, args.wave, args.simtime, args.nococo
 
 # Generates a makefile
 def _make_make(work_dir: str, top_level_module: str, block_name: str, results_names: List[str]=[], results_paths: List[str]=[]) -> Tuple[List[str], List[str]]:
@@ -343,17 +342,19 @@ def run_sim(work_dir: Path, top_level_module: str, waves: bool, nococo: bool=Fal
 
 def main() -> None:
     # 0. Parse user arguments
-    ws_path, cfg_path, view, waves, simtime, nococo = parse_args()
+    cfg_path, view, waves, simtime, nococo = parse_args()
     # 1. Get descriptor from configuraiton file
-    _, block_name, top_level_module, rtl_dir, tb_dir, work_dir = get_descriptor(cfg_path, ws_path, view)
+    ws_path, project_name, block_name, rtl_dir, tb_dir, work_dir = gen_get_descriptor(cfg_path, view)
     # 2. Generate filelist
     results_names, results_paths = getlist(ws_path, cfg_path, view, work_dir, True)
-    # 3. Create test files: makefile and testbench
+    # 3. Find top-level-module
+    top_level_module = get_top_level_path(cfg_path, view).stem
+    # 4. Create test files: makefile and testbench
     if not nococo:
         results_names, results_paths = create_test(tb_dir, work_dir, top_level_module, rtl_dir, block_name, simtime, results_names, results_paths)
-    # 4. Run simulation
+    # 5. Run simulation
     results_names, results_paths, failed = run_sim(work_dir, top_level_module, waves, nococo, results_names, results_paths)
-    # 5. Print log
+    # 6. Print log
     log_header = 'Simulation Completed Successfully' if not failed else 'Simulation Failed'
     gen_outlog(results_names, results_paths, log_header, failed)
 

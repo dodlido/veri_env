@@ -72,7 +72,7 @@ def check_cwd_for_repo() -> None:
     except InvalidGitRepositoryError:
         gen_err('you are currently not within a valid git repository')
 
-# show all valid workspaces
+# show all valid repositories
 def show_repos():
     message = 'available repositories:\n'
     repos = _get_github_repositories()

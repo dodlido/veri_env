@@ -1,5 +1,5 @@
 // 
-// {MODULE_NAME}.v 
+// {MODULE_NAME}_top.v 
 //
 
 module {MODULE_NAME}_top (

@@ -22,6 +22,7 @@ def parse_args():
     parser = argparse.ArgumentParser(description='release creates a git tag in the remote repository and a local copy in your storage')
     parser.add_argument('-m', '--message', type=str, action='store', dest='m', help='Release message, can be a file as long as it ends with .txt', required=True)
     parser.add_argument('-t', '--type', type=str, action='store', dest='t', help='Release type v(major.standard.minor), defaults to standard', default='standard')
+    parser.add_argument('--no-sign', action='store_true', dest='ns', help='Do not sign source files')
 
     # get arguments
     args = parser.parse_args(None if sys.argv[1:] else ['-h'])
@@ -39,7 +40,7 @@ def parse_args():
     else:
         message = args.m
     
-    return message, args.t
+    return message, args.t, args.ns
 
 def get_new_tag(release_type: str) -> str:
     # Open the repository
@@ -234,11 +235,12 @@ def remove_git_repo_and_set_read_only(repo_path):
 # Usage: release.py -m <release message> --type <release type>
 def main() -> None:
     # 0. Parse flags
-    m, t = parse_args()
+    m, t, ns = parse_args()
     # 1. Infer new tag name
     new_tag = get_new_tag(t)
     # 2. Update footers for .v files
-    update_footers(new_tag)
+    if not ns:
+        update_footers(new_tag)
     # 3. Add, commit, push and create tag
     add_commit_push_n_tag(new_tag, m)
     # 4. Clone repo to releases storage

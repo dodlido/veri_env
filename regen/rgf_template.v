@@ -3,7 +3,7 @@ module {RGF_NAME} #(
    // ---------- // 
    parameter DAT_W  = {RGF_REG_WIDTH} , 
    parameter ADD_W  = {RGF_ADD_WIDTH} , 
-   parameter STRB_W = $clog2(DAT_W/8)
+   parameter STRB_W = (DAT_W/8)
 ) (
    // General //
    // ------- //
@@ -105,14 +105,3 @@ always_comb begin
    {OUTPUT_MUX}
    endcase
 end
-
-endmodule
-
-//|~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~|//
-//|                                               |//
-//| 1. Project  :  veri_env                       |//
-//| 2. Author   :  Etay Sela                      |//
-//| 3. Date     :  2024-12-30                     |//
-//| 4. Version  :  v3.1.0                         |//
-//|                                               |//
-//|~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~|//

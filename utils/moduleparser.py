@@ -1,6 +1,7 @@
 from pathlib import Path
 from typing import List, Dict, Tuple
 import re
+import subprocess
 
 def _parse_port_declaration(port_declaration: str) -> tuple:
     # Updated regex pattern to capture types with package qualifiers and handle comments with commas
@@ -60,7 +61,9 @@ def get_if(src_path: Path) -> List[Dict]:
                 break
             elif re.match(skip_regex, line): # No characters ==> skip this line
                 continue
-            elif re.match(header_regex, line) and 'arameter' not in line: # Found new header # TODO: this "arameter" is here to temporarly skip parameters
+            elif 'parameter' in line or 'localparam' in line: # parameters ==> continue
+                continue
+            elif re.match(header_regex, line): # Found new header 
                 if curr_dict: # Previously assembled dict has ended here
                     interface.append(curr_dict)
                 curr_dict = dict(headline=line.lstrip('\t').rstrip('\n'), directions=[], types=[], widths=[], names=[], comments=[])
@@ -80,3 +83,79 @@ def get_if(src_path: Path) -> List[Dict]:
         interface.append(curr_dict)
 
     return interface
+
+def _get_inst(interface: List[Dict], module_name: str) -> str:
+    inst = module_name + ' i_' + module_name + ' (\n'
+    for dic in interface:
+        inst += '   ' + dic["headline"] + '\n'
+        for i, name in enumerate(dic["names"]):
+            if dic["directions"][i] == 'input':
+                direction = 'i'
+            else:
+                direction = 'o'
+            type_ = dic["types"][i]
+            width = dic["widths"][i].replace(' ', '')
+            comment = dic["comments"][i].replace('/','').lstrip()
+            inst += '   .' + name + ' (' + name + ') // ' + direction + ', ' + width + ' X ' + type_ + ' , ' + comment + '\n'
+    inst += ');'
+    return inst
+
+def _find_nth(haystack: str, needle: str, curr_max: int, n: int=1) -> int:
+    start = haystack.find(needle)
+    while start >= 0 and n > 1:
+        start = haystack.find(needle, start+len(needle))
+        n -= 1
+    if start > curr_max:
+        return start
+    else:
+        return curr_max
+
+def _align_inst(inst: str) -> str:
+   
+    # Constants and stuff
+    lines = inst.split('\n') # no header and footer
+    header, footer = lines[0], lines[-1]
+    lines = lines[1:-1]
+    aligned_inst = ''
+    header_regex = r'^\s*//.*//\s*$'
+   
+    delimiter_list = ['(', ')', 'X', ',', ',']
+    sum = 0
+
+    for delimiter in delimiter_list:
+        max = 0
+        # Find maximum occurance
+        for line in lines:
+            if re.match(header_regex, line):
+                continue
+            max = _find_nth(line[sum:], delimiter, max)
+   
+        for i, line in enumerate(lines):
+            if re.match(header_regex, line):
+                continue
+            idx = line[sum:].find(delimiter) + sum
+            tempL = line[:idx]              
+            tempR = line[idx:]
+            tempL += ' ' * (max - idx + sum)
+            lines[i] = tempL + tempR
+       
+        sum += max + 1
+   
+    aligned_inst += header + '\n'
+    for line in lines:
+        aligned_inst += line + '\n'
+    aligned_inst += footer
+    return aligned_inst
+
+def get_inst(src_path: Path, src_module_name: str)->str:
+    header = '''\n
+// --------------------------------------------------------- //
+// the below instance was generated automatically by enst.py //
+\n'''
+    footer = '''\n
+// the above instance was generated automatically by enst.py //
+// --------------------------------------------------------- //
+\n'''
+    _if = get_if(src_path)
+    inst = _get_inst(_if, src_module_name)
+    return header + _align_inst(inst) + footer

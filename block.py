@@ -99,8 +99,17 @@ def create_cfg_file(block_path):
 def create_regs_files(block_path):
     env_path = block_path / '.env'
     env_content = os.environ['tools_dir']
+    vscode_path = block_path / '.vscode'
+    vscode_path.mkdir(parents=True, exist_ok=True) 
+    json_path = vscode_path / 'settings.json'
+    json_template_path = Path(env_content) / 'resources' / 'vscode_settings_template.json'
     with open(env_path, 'w') as env_file:
         env_file.write(env_content)
+    with open(json_template_path, 'r') as json_template_file:
+        json_template = json_template_file.read()
+    json_content = json_template.replace('{TOOLS_DIR}', env_content)
+    with open(json_path, 'w') as json_file:
+        json_file.write(json_content)
     gen_note(f'wrote .env file at {env_path}')
     block_name = block_path.stem
     rgf_path = block_path / 'regs' / f'{block_name}_rgf.py'

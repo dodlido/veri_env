@@ -12,7 +12,7 @@ from utils.general import gen_err
 def permissions_to_bit_str(permission: bool)->str:
     return '1\'b1' if permission else '1\'b0'
 
-def create_port(direction: str, width: int, rgf_name: str, reg_name: str, field_name: str, suffix: str=None, commnet: str=None)->Tuple[str, str, str]:
+def create_port(direction: str, width: int, rgf_name: str, reg_name: str, field_name: str, suffix: str=None, commnet: str=None)->Tuple[str, str]:
     # parse signal name
     sig_name = f'{rgf_name}_{reg_name}_{field_name}'
     if suffix:
@@ -66,7 +66,7 @@ class AccessPermissions(object):
     def set_sts(self):# set permissions to mimic configuration permissions
         self.sw_rd = True # SW has read permissions
         self.sw_wr = False # SW has no write permissions
-        self.hw_rd = True # HW has read permissions
+        self.hw_rd = False # HW has read permissions
         self.hw_wr = True # HW has write permissions
         
 class Field(object):
@@ -103,12 +103,12 @@ class Field(object):
             module_ports.append(mps)
             instance_ports.append(ips)
         if self.we:
-            mps, ips = create_port('input', self.width, regfile_name, register_name, self.name, 'hw_we', 'HW write enable bit')
+            mps, ips = create_port('input', 1, regfile_name, register_name, self.name, 'hw_we', 'HW write enable bit')
             module_ports.append(mps)
             instance_ports.append(ips)
         return module_ports, instance_ports
     
-    def get_verilog_ff(self, regfile_name: str, register_name: str, register_address: Address) -> str:
+    def get_verilog_ff(self, regfile_name: str, register_name: str, register_address: Address, latch=False) -> str:
         
         # read from template
         template_path = Path(os.environ['tools_dir']) / 'regen' / 'register_template.v'
@@ -124,6 +124,10 @@ class Field(object):
 
         # mask HW write option in case of no permissions
         mask_hw_wr_str = '//' if not self.permissions.hw_wr else '  '
+        mask_hw_rd_str = '//' if self.permissions.hw_rd else ''
+
+        # latch
+        latch_str = '1\'b1' if latch else '1\'b0'
                                                                             
         # replacement dictionary
         rep_dict = {
@@ -139,7 +143,9 @@ class Field(object):
             '{REG_HEX_ADD}': f"{register_address.get_hex_address()}",
             '{FLD_HW_WE_INT}': hw_int_we_str,
             '{FLD_RST_VAL}': f'{self.width}\'h{self.reset_val}',
-            '{MASK_HW_WR}': mask_hw_wr_str
+            '{MASK_HW_WR}': mask_hw_wr_str,
+            '{MASK_HW_RD}': mask_hw_rd_str,
+            '{LATCH}': latch_str
         }
         
         # go over dictionary, replacing all keys with values
@@ -158,15 +164,83 @@ class Field(object):
             gen_err(f'unable to set write-enable attribute to a field without HW write permissions (field {self.name})') 
 
 class CfgField(Field):
-    def __init__(self, name = 'field', description = 'some description', persmissions = AccessPermissions(), width = 8, offset = 0):
+    def __init__(self, name = 'field', description = 'some description', width = 8, offset = 0):
+        persmissions = AccessPermissions()
+        persmissions.set_cfg()
         super().__init__(name, description, persmissions, width, offset)
-        self.permissions.set_cfg()
 
 class StsField(Field):
-    def __init__(self, name = 'field', description = 'some description', persmissions = AccessPermissions(), width = 8, offset = 0):
+    def __init__(self, name = 'field', description = 'some description', width = 8, offset = 0):
+        persmissions = AccessPermissions()
+        persmissions.set_sts()
         super().__init__(name, description, persmissions, width, offset)
-        self.permissions.set_sts()
 
+class SWPulseWRField(Field):
+    def __init__(self, name = 'field', description = 'some description', width=1, offset = None, reset_val = 0):
+        permissions = AccessPermissions()
+        permissions.set_cfg()
+        we = False
+        super().__init__(name, description, permissions, width, offset, reset_val, we)
+    
+    def get_verilog_ports(self, regfile_name, register_name):
+        module_ports, instance_ports = super().get_verilog_ports(regfile_name, register_name)
+        mps, ips = create_port('output', 1, regfile_name, register_name, self.name, 'sw_wr_pulse', 'SW wrote this field, pulse, active high')
+        module_ports.append(mps)
+        instance_ports.append(ips)
+        return module_ports, instance_ports
+    
+    def get_verilog_ff(self, regfile_name, register_name, register_address):
+        verilog_code = super().get_verilog_ff(regfile_name, register_name, register_address)
+        signal_name = f'{regfile_name}_{register_name}_{self.name}'
+        verilog_code += f'''\n
+assign {signal_name}_sw_wr_pulse = {signal_name}_sw_write_access & {signal_name}_sw_we & |(pstrb_mask[{self.offset}+:{self.width}]) ;
+// SW pulse active high when {signal_name} is written
+\n'''
+        return verilog_code
+
+class SWPulseRDField(Field):
+    def __init__(self, name = 'field', description = 'some description', width = 8, offset = None, reset_val = 0):
+        permissions = AccessPermissions()
+        permissions.set_sts()
+        we = False
+        super().__init__(name, description, permissions, width, offset, reset_val, we)
+
+    def get_verilog_ports(self, regfile_name, register_name):
+        module_ports, instance_ports = super().get_verilog_ports(regfile_name, register_name)
+        mps, ips = create_port('output', 1, regfile_name, register_name, self.name, 'sw_rd_pulse', 'SW read this field, pulse, active high')
+        module_ports.append(mps)
+        instance_ports.append(ips)
+        return module_ports, instance_ports
+    
+    def get_verilog_ff(self, regfile_name, register_name, register_address):
+        verilog_code = super().get_verilog_ff(regfile_name, register_name, register_address)
+        signal_name = f'{regfile_name}_{register_name}_{self.name}'
+        verilog_code += f'''\n
+assign {signal_name}_sw_rd_pulse = (paddr==ADD_W'({register_address.byte_address})) & (apb_sts_curr==APB_READ) ; 
+// SW pulse active high when {signal_name} is read
+\n''' 
+        return verilog_code
+
+class IntrField(Field):
+    def __init__(self, name = 'field', description = 'some description', offset = None, reset_val = 0):
+        permissions = AccessPermissions()
+        permissions.set_sts()
+        width = 1
+        super().__init__(name, description, permissions, width, offset, reset_val, False)
+        
+    def get_verilog_ports(self, regfile_name, register_name):
+        return super().get_verilog_ports(regfile_name, register_name)
+    
+    def get_verilog_ff(self, regfile_name, register_name, register_address):
+        verilog_code = super().get_verilog_ff(regfile_name, register_name, register_address, True)
+        signal_name = f'{regfile_name}_{register_name}_{self.name}'
+        verilog_code += f'''
+// interrupt for {signal_name}
+logic {signal_name}_intr ; 
+assign {signal_name}_intr = ~{signal_name} & {signal_name}_next ; 
+'''
+        return verilog_code
+        
 class Register(object):
     def __init__(self, name: str='register', description: str='some description', width: int=32, fields: List[Field]=[]):
         self.name = name # register name
@@ -291,10 +365,19 @@ class RegFile(object):
 
     def get_verilog_ports(self) -> List[str]:
         module_ports, instance_ports = [], []
+        found_an_intr = False
         for reg in self.registers:
             mps, ips = reg.get_verilog_ports(self.name)
             module_ports += mps
             instance_ports += ips
+        for reg in self.registers:
+            for fld in reg.fields:
+                if isinstance(fld, IntrField):
+                    found_an_intr = True
+        if found_an_intr:
+            intr_mps, intr_ips = create_port('output', 1, self.name, '', '', 'intr', 'agrregation of interrups in regfile')
+            module_ports.append(intr_mps)
+            instance_ports.append(intr_ips)
         return module_ports, instance_ports
     
     def get_html(self):
@@ -437,6 +520,16 @@ class RegFile(object):
         rgf_verilog = rgf_verilog.replace('{RGF_REG_WIDTH}', f'{self.rgf_reg_width}')
         rgf_verilog = rgf_verilog.replace('{RGF_ADD_WIDTH}', f'{self.rgf_addr_width}')
         rgf_verilog = rgf_verilog.replace('{RGF_NAME}', f'{self.name}')
+
+        # handle interrupts
+        intr_str = ''
+        for reg in self.registers:
+            for fld in reg.fields:
+                if isinstance(fld, IntrField):
+                    intr_str += f'{self.name}_{reg.name}_{fld.name}_intr | '
+        intr_str = intr_str[:-2] + ';\n'
+
+        rgf_verilog += f'\nassign {self.name}___intr = {intr_str}\n\nendmodule\n'
         
         return rgf_verilog
     

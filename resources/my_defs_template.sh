@@ -29,6 +29,7 @@ alias add='python3 ${tools_dir}add.py'
 alias rls='python3 ${tools_dir}release.py'
 alias blk='python3 ${tools_dir}block.py'
 alias reg='python3 ${tools_dir}regen.py'
+alias enst='python3 ${tools_dir}enst.py'
 ################################################
 ### Manual edit of active script ends here   ###
 ################################################

@@ -258,6 +258,18 @@ def parse_cfg_rec(ws_path: Path, cfg_path: Path, view: str, file_list: List[Path
         
     return file_list, defines_list, regs_list
 
+def parse_children(ws_path: Path, cfg_path: Path, view: str)-> Tuple[List[str], List[Path], List[str]]:
+    
+    # read configuration file
+    cfg = configparser.ConfigParser()
+    cfg.read(cfg_path)
+
+    # get children names paths and views
+    names, paths = _get_paths(ws_path, cfg, cfg_path)
+    names, paths, views = _get_children(cfg, view, names, paths)
+
+    return names, paths, views
+
 def show_views(cfg_path: Path)-> None:
     
     # read configuration file

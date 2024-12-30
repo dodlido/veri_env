@@ -43,7 +43,7 @@ def gen_find_cfg_file(given_cfg_path: Path=None, ws: str=None, project: str=None
     ### configuration path inferring process ###
 
     if given_cfg_path: # option 1 - config path specified 
-        cfg_path = Path(given_cfg_path)
+        cfg_path = Path(given_cfg_path).absolute()
         gen_validate_path(cfg_path, 'locate provided configuration file')
     
     else: # option 2 - some form of the workspace-->project-->block triplet should have been specified or inferred

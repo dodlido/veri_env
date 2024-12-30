@@ -1,0 +1,8 @@
+{
+    "python.autoComplete.extraPaths": [
+        "{TOOLS_DIR}"
+    ],
+    "python.analysis.extraPaths": [
+        "{TOOLS_DIR}"
+    ]
+}

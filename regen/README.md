@@ -119,5 +119,6 @@ The apb_infra.py script implements some basic functions and classes to allow the
    3. If the transaction queue transitions from empty to not-empty, a _tx_pipe coro is forked, trying to drive all transactions in queue over the APB bus
 4. **APBMonitor** - APB Monitor Class
    1. Listen to the APB bus for valid transactions
+
 An example of a testbench utilizing all of those can be found [here](../examples/example_ws/example_project/verification/apb_fifo/tests/apb_fifo_tb.py)
 

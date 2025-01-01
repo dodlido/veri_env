@@ -180,7 +180,7 @@ Interaction with the register-file is done by-field-name:
     
     You could use the --waves flag to open the created .vcd file using GTKWave. However, I traced some of the main functionality using cocotb's built-in wavedrom-signal-tracer. Here are the results:
     ##### APB Write
-    [apb_write_transaction_waves](../images/apb_fifo_wr_transaction.png)
+    ![apb_write_transaction_waves](../images/apb_fifo_wr_transaction.png)
     ##### APB Read
-    [apb_read_transaction_waves](../images/apb_fifo_rd_transaction.png)
+    ![apb_read_transaction_waves](../images/apb_fifo_rd_transaction.png)
 

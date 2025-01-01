@@ -17,7 +17,7 @@ The reader is welcome to go through the directory and use the config syntax and 
 ## APB FIFO
 
 ### About
-The project example_proj contains one block: apb_fifo. It is a FIFO that offers the user an APB interface for:
+The project example_project contains one block: apb_fifo. It is a FIFO that offers the user an APB interface for:
 1. Configuring the FIFO
 2. Writing to the FIFO
 3. Reading from the FIFO

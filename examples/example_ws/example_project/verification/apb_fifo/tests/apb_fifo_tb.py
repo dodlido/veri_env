@@ -141,38 +141,4 @@ async def basic_test(dut):
         if i in check_points: # in expected status changes:
             await read_sts(apb_drv, dut.clk) # read all statuses
 
-# Example Write 
-@cocotb.test()
-async def examples(dut):
-    # Start clock
-    await cocotb.start(Clock(dut.clk, 1, 'ns').start())
 
-    # Define Driver and Monitor
-    apb_drv = APBMasterDriver(dut, 'rgf', dut.clk)
-    apb_mon = APBMonitor(dut, 'rgf', dut.clk, rgf_dict, bus_width=32)
-    apb_mon.add_callback(print_transaction)
-    apb_mon.add_callback(check_sts) # callback to compare between expected statuses and statuses read over APB
-    apb_mon.add_callback(check_dat) # callback to compare between expected output data and received data over APB
-
-    # Trace signals
-    fifo_in_if = Bus(dut, 'fifo', ['push', 'dat_in'])
-    fifo_out_if = Bus(dut, 'fifo', ['pop', 'dat_out'])
-    with trace(apb_drv.bus, fifo_in_if, dut.fifo_sts_count, clk=dut.clk) as waves:
-        await ClockCycles(dut.clk, 1)
-        await drive_rand_dat(apb_drv, dut.clk) # Drive random input data
-        await ClockCycles(dut.clk, 3)
-        j = waves.dumpj()
-        
-    # Write json content
-    with open('write_transaction.json', 'w') as file:
-        file.write(j)
-    
-    with trace(apb_drv.bus, fifo_out_if, dut.fifo_sts_count, clk=dut.clk) as waves:
-        await ClockCycles(dut.clk, 1)
-        await read_dat(apb_drv, dut.clk) # Drive random input data
-        await ClockCycles(dut.clk, 3)
-        j = waves.dumpj()
-        
-    # Write json content
-    with open('read_transaction.json', 'w') as file:
-        file.write(j)

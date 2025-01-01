@@ -26,12 +26,12 @@ The goal is to achieve a single 'ground-truth' register description for each blo
 
 ## Classes
 The language presents the following classes:
-1. AccessPermissions - defines the access permissions of anything. Attributes:
+1. **AccessPermissions** - defines the access permissions of anything. Attributes:
    1. sw_rd, bool - SW read permissions
    2. sw_wr, bool - SW write permissions
    3. hw_rd, bool - HW read permissions
    4. hw_wr, bool - HW write permissions
-2. Field - a field is a collection of bits. Attributes:
+2. **Field** - a field is a collection of bits. Attributes:
    1. name       , str               - the field's name
    2. description, str               - the field's description
    3. permissions, AccessPermissions - the field's access permissions
@@ -39,19 +39,19 @@ The language presents the following classes:
    5. offset     , int               - the field's offset within a register
    6. reset_val  , int               - the field's reset value
    7. we         , bool              - whether the field gets an external HW write-enable bit
-      1. CfgField - a subclass of Field, (HW RD, SW WR+RD) permissions
-      2. StsField - a subclass of Field, (HW WR, SW RD) permissions
-      3. SWPulseWRField - a subclass of Field, (HW RD, SW WR+RD), HW is provided a pulse for every SW write event.
-      4. SWPulseRDField - a subclass of Field, (HW WR, SW RD), HW is provided a pulse for every SW read event.
-3. Address - address within the register file. single attribute - byte_address.
-4. Register - a collection of fields. Attributes:
+      1. **CfgField** - a subclass of Field, (HW RD, SW WR+RD) permissions
+      2. **StsField** - a subclass of Field, (HW WR, SW RD) permissions
+      3. **SWPulseWRField** - a subclass of Field, (HW RD, SW WR+RD), HW is provided a pulse for every SW write event.
+      4. **SWPulseRDField** - a subclass of Field, (HW WR, SW RD), HW is provided a pulse for every SW read event.
+3. **Address** - address within the register file. single attribute - byte_address.
+4. **Register** - a collection of fields. Attributes:
    1. name          , str             - the register's name
    2. description   , str             - the register's description
    3. width         , int             - the register's width in bits
    4. address       , Address         - the register's address within a register file
    5. fields        , List[Field]     - a list of the fields in the register
    6. occupied_bmap , ndarray(width,) - a bitmap of occupied bits within the register  
-5.  RegFile - a collection of registers. Attributes:
+5.  **RegFile** - a collection of registers. Attributes:
     1. name           , str            - the regfile's name
     2. description    , str            - the regfile's description
     3. registers      , List[Register] - a list of the registers in the regfile
@@ -108,16 +108,16 @@ The language presents the following classes:
 ## Usage in Verification
 
 The apb_infra.py script implements some basic functions and classes to allow the testbench to integrate smoothly with the register file:
-1. APBTransaction - APB Transaction Class
+1. **APBTransaction** - APB Transaction Class
    1. gets field's full name + data if this is a write transaction
    2. Looks up the register dictionary to find the field's address and strobe
    3. Converts the field's address + strobe + (data) to a traditional APB transaction
    4. Defines print function and overrides the __eq__ function
-3. APBMasterDriver - APB Master Driver Class
+3. **APBMasterDriver** - APB Master Driver Class
    1. Drive new transactions by calling the _driver_send() function
    2. New transactions are appended to a transaction queue
    3. If the transaction queue transitions from empty to not-empty, a _tx_pipe coro is forked, trying to drive all transactions in queue over the APB bus
-4. APBMonitor - APB Monitor Class
+4. **APBMonitor** - APB Monitor Class
    1. Listen to the APB bus for valid transactions
 An example of a testbench utilizing all of those can be found [here](../examples/example_ws/example_project/verification/apb_fifo/tests/apb_fifo_tb.py)
 

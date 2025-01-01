@@ -30,9 +30,6 @@ def parse_args():
     # view name - a must
     parser.add_argument('-v', '--view', type=str, action='store', dest='view', help='Desired view, "show" to display options', required=False)
     # optional triggers
-    parser.add_argument('--waves', action='store_true', dest='wave', help='Create waves', default=False)
-    parser.add_argument('--sim-time', type=int, action='store', dest='simtime', help='simulation time for automatically generated testbench, specified in [cycles]', default=(2**16))
-    parser.add_argument('--no-coco', action='store_true', dest='nococo', help='compile only, no cocotb testbench', default=False)
     parser.add_argument('--show', action='store_true', dest='show', help='Show synthesis output using graphviz', default=False)
 
     # get arguments

@@ -1,3 +1,4 @@
+import json
 import os
 from pathlib import Path
 import numpy as np
@@ -193,7 +194,7 @@ class SWPulseWRField(Field):
         verilog_code = super().get_verilog_ff(regfile_name, register_name, register_address)
         signal_name = f'{regfile_name}_{register_name}_{self.name}'
         verilog_code += f'''\n
-assign {signal_name}_sw_wr_pulse = {signal_name}_sw_write_access & {signal_name}_sw_we & |(pstrb_mask[{self.offset}+:{self.width}]) ;
+assign {signal_name}_sw_wr_pulse = {signal_name}_sw_write_access & {signal_name}_sw_we ;
 // SW pulse active high when {signal_name} is written
 \n'''
         return verilog_code
@@ -216,7 +217,7 @@ class SWPulseRDField(Field):
         verilog_code = super().get_verilog_ff(regfile_name, register_name, register_address)
         signal_name = f'{regfile_name}_{register_name}_{self.name}'
         verilog_code += f'''\n
-assign {signal_name}_sw_rd_pulse = (paddr==ADD_W'({register_address.byte_address})) & (apb_sts_curr==APB_READ) ; 
+assign {signal_name}_sw_rd_pulse = (paddr==ADD_W'({register_address.byte_address})) & (apb_sts_curr==APB_READ) & (|(pstrb_mask[{self.offset}+:{self.width}])) ; 
 // SW pulse active high when {signal_name} is read
 \n''' 
         return verilog_code
@@ -295,13 +296,18 @@ class Register(object):
     
     def get_verilog_ffs(self, regfile_name: str) -> str:
         ffs = ''
-        master_wire_declaration = f'\nlogic [{self.width}-1:0] {regfile_name}_{self.name} ;'
-        master_wire_assignment = f'\nassign {regfile_name}_{self.name} = ' + '{'
+        master_wire_declaration = f'\nlogic [{self.width}-1:0] {regfile_name}_{self.name} ;\n'
+        master_wire_assignments = []
         for fld in self.fields:
             ffs += fld.get_verilog_ff(regfile_name, self.name, self.address) + '\n\n'
-            master_wire_assignment += f'{regfile_name}_{self.name}_{fld.name}, '
-        master_wire_assignment = master_wire_assignment[:-2] + '};\n'
-        return ffs + master_wire_declaration + master_wire_assignment
+            master_wire_assignments.append(f'assign {regfile_name}_{self.name}[{fld.offset}+:{fld.width}] = {regfile_name}_{self.name}_{fld.name} ;')
+        for i, bit in enumerate(self.occupied_bmap):
+            if not bit:
+                master_wire_assignments.append(f'assign {regfile_name}_{self.name}[{i}] = 1\'b0 ;')
+        content = ffs + master_wire_declaration 
+        for assignment in master_wire_assignments:
+            content += assignment + '\n'
+        return content
     
     def get_verilog_ports(self, regfile_name: str) -> List[str]:
         module_ports, instance_ports = [], []
@@ -346,7 +352,7 @@ class RegFile(object):
                 rgf_reg_width = reg.width
         
         # infer the address width in [bits]
-        rgf_addr_width = int(math.log(running_address.byte_address , 2))
+        rgf_addr_width = int(math.ceil(math.log(running_address.byte_address , 2)))
 
         return register_list, running_address, rgf_addr_width, rgf_reg_width
     
@@ -547,6 +553,44 @@ class RegFile(object):
         inst = inst.replace('{RGF_NAME}', f'{self.name}')
         inst = inst.replace('{RGF_PORTS}', port_string)
         return inst
-
     
+    def get_json(self):
+
+        dict_list = []
+
+        # iterate over all registers
+        for reg in self.registers:
+
+            address = hex(reg.address.byte_address)
+            reg_width = reg.width
+
+            # iterate over all fields in the register
+            for fld in reg.fields:
+                
+                # get full name of field
+                full_name = f'{self.name}_{reg.name}_{fld.name}'
+
+                # infer strobe from offset + width
+                strobe = []
+                occupied = range(fld.offset, fld.offset+fld.width)
+                for i in range(int(reg_width/8)):
+                    strobe_i = range(i*8, (i+1)*8)
+                    overlap = strobe_i.start < occupied.stop and occupied.start < strobe_i.stop
+                    strobe.append(overlap)
+
+                # append dictionary to list
+                field_dict = {
+                    "name": full_name,
+                    "address": address,
+                    "offset": fld.offset,
+                    "width": fld.width,
+                    "strobe": strobe
+                }
+                dict_list.append(field_dict)
+        
+        json_file = regfile = {
+            "rgf": dict_list
+        }
+
+        return json_file
 

@@ -1,9 +1,9 @@
 module {RGF_NAME} #(
    // Parameters // 
    // ---------- // 
-   parameter DAT_W  = {RGF_REG_WIDTH} , 
-   parameter ADD_W  = {RGF_ADD_WIDTH} , 
-   parameter STRB_W = (DAT_W/8)
+   localparam DAT_W  = {RGF_REG_WIDTH} , 
+   localparam ADD_W  = {RGF_ADD_WIDTH} , 
+   localparam STRB_W = (DAT_W/8)
 ) (
    // General //
    // ------- //
@@ -46,7 +46,7 @@ apb_sts_e apb_sts_curr ;
 // Next state logic // 
 always_comb begin
    case (apb_sts_curr)
-      APB_IDLE: begin 
+      default: begin 
          if (psel & pwrite)
             apb_sts_next = APB_WRITE ; 
          else if (psel)
@@ -72,7 +72,7 @@ always_ff @(posedge clk) if (!rst_n) apb_sts_curr <= APB_IDLE ; else apb_sts_cur
 // Output Controls // 
 always_comb begin // TODO: add slave error logic
    case (apb_sts_curr)
-      APB_IDLE: begin 
+      default: begin 
          pready = 1'b0 ; 
          pslverr = 1'b0 ; 
       end
@@ -90,7 +90,7 @@ end
 genvar STRB_IDX ; 
 generate
 for (STRB_IDX=0; STRB_IDX<STRB_N; STRB_IDX++) begin: gen_strb_mask
-   assign pstrb_mask[(STRB_IDX*8)+:8] = pstrb[STRB_IDX];
+   assign pstrb_mask[(STRB_IDX*8)+:8] = {8{pstrb[STRB_IDX]}};
 end
 endgenerate
 
@@ -103,5 +103,6 @@ endgenerate
 always_comb begin
    case (paddr) 
    {OUTPUT_MUX}
+   default: prdata = DAT_W'(0) ; 
    endcase
 end

@@ -1,3 +1,4 @@
+import json
 from pathlib import Path
 from typing import List, Tuple
 import subprocess
@@ -29,6 +30,7 @@ def parse_args():
     # view name - a must
     parser.add_argument('-v', '--view', type=str, action='store', dest='view', help='Desired view, "show" to display options', required=False)
     # options
+    parser.add_argument('-json', '--json', action='store_true', dest='json', help='Get json description of the registers', required=False)
     parser.add_argument('-html', '--html', action='store_true', dest='html', help='Get HTML description of the registers', required=False)
     parser.add_argument('-inst', '--inst', action='store_true', dest='inst', help='Append RGF instance to top-level-module', required=False)
     parser.add_argument('-verilog', '--verilog', action='store_true', dest='verilog', help='Generate verilog source code', required=False)
@@ -54,9 +56,9 @@ def parse_args():
         out_dir = Path(args.out)
         out_dir.mkdir(parents=True, exist_ok=True)
         
-    return cfg_path, args.view, args.html, args.inst, args.verilog, out_dir, args.a
+    return cfg_path, args.view, args.json, args.html, args.inst, args.verilog, out_dir, args.a
 
-def execute(rgf_path: Path, top_module_path: Path, html: bool, inst: bool, verilog: bool, out_dir: Path, append: bool)->None:
+def execute(rgf_path: Path, top_module_path: Path, json: bool, html: bool, inst: bool, verilog: bool, out_dir: Path, append: bool)->None:
         notes = []
         rgf_name = rgf_path.stem
         
@@ -97,6 +99,15 @@ html = {rgf_name}.get_html()
 with open('{out_file}', 'w') as html_file:
     html_file.write(html)'''
             notes.append(f'wrote {rgf_name} html to {out_file}')
+        
+        # 4. Write json to out_dir
+        if json:
+            out_file = out_dir / f'{rgf_name}.json'
+            rgf_content += f'''
+json_content = {rgf_name}.get_json()
+with open('{out_file}', 'w') as json_file:
+    json.dump(json_content, json_file, indent=4)'''
+            notes.append(f'wrote {rgf_name} json to {out_file}')
             
         # Write RGF content to temp.py
         temp_path = Path('temp.py')
@@ -115,13 +126,13 @@ with open('{out_file}', 'w') as html_file:
 
 def main():
     # 0. parse arguments
-    cfg_path, view, html, inst, verilog, out_dir, append = parse_args()
+    cfg_path, view, json, html, inst, verilog, out_dir, append = parse_args()
     # 1. get top level module path
     top_module_path = get_top_level_path(cfg_path, view)
     # 2. get RGF path
     rgf_path = get_top_rgf_path(cfg_path, view)
     # 3. execute user request - html \ verilog \ append instance
-    execute(rgf_path, top_module_path, html, inst, verilog, out_dir, append)
+    execute(rgf_path, top_module_path, json, html, inst, verilog, out_dir, append)
 
 if __name__ == '__main__':
     main()

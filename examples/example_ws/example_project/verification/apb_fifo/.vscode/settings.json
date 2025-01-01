@@ -1,0 +1,8 @@
+{
+    "python.autoComplete.extraPaths": [
+        "/home/etay-sela/design/veri_tools/veri_env"
+    ],
+    "python.analysis.extraPaths": [
+        "/home/etay-sela/design/veri_tools/veri_env"
+    ]
+}

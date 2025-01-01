@@ -167,6 +167,7 @@ def _gen_tb(tb_dir: Path, work_dir: Path, block_name: str, simtime: int, results
         sys.path.insert(0, str(tb_dir.parent)) 
         tb_contents = 'import sys\n' 
         tb_contents += 'sys.path.append("' + str(homedir_tb_path.parent.parent) + '")\n'
+        tb_contents += 'sys.path.append("' + os.environ['tools_dir'] + '")\n'
         with open(homedir_tb_path, 'r') as file:
             tb_contents += file.read()
     
@@ -211,7 +212,7 @@ def _add_dump_vcd(work_dir: str, top_level_module: str) -> None:
     with open(top_level_path, 'w') as design:
         for line in old:
             if 'endmodule' in line:
-                design.write('\ninitial begin\n   $dumpfile(\"dump.vcd\");\n   $dumpvars(1, ' + top_level_module + ');\nend\nendmodule') 
+                design.write('\ninitial begin\n   $dumpfile(\"dump.vcd\");\n   $dumpvars(0, ' + top_level_module + ');\nend\nendmodule') 
             else:
                 design.write(line)
     gen_note(f'vcd dump command added to top-level module in {top_level_path}')

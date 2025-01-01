@@ -105,23 +105,30 @@ Developing this environment I drew alot of ideas and inspiration regarding what 
       - For each *design block* there could be a folder under the *verification* tree which contains:
          - a folder named *tests* which contains a cocotb testbench named "block_name_tb.py"
          - any number of folders and scripts that "block_name_tb.py" needs to function
-6. You can browse an example workspace in the [exampl_ws](./examples/example_ws/) folder in this repository
+6. You can always create a block skeleton at your own workspace:
 ```bash
-example_ws
-└── example_project
-    └── design
-        └── example_block
-            ├── misc
-            │   └── example_block.cfg
-            ├── regs
-            │   └── example_block_rgf.py
-            └── rtl
-                └── example_block_top.v
+╰─ blk -b blk
+╰─ tree -a
+.
+├── design
+│   └── blk
+│       ├── .env
+│       ├── misc
+│       │   └── blk.cfg
+│       ├── regs
+│       │   └── blk_rgf.py
+│       ├── rtl
+│       │   └── blk_top.v
+│       └── .vscode
+│           └── settings.json
+└── verification
+    └── blk
+        ├── .env
+        ├── tests
+        └── .vscode
+            └── settings.json
 ```
-7. You can always create an example block at your own workspace:
-```bash
-blk -b example_blk
-```
+   * The hidden files are placed there intentionally in order to allow for syntax highlighting and autocompletion using vscode and coding with the veri-env classes and functions
 
 ## Configuration syntax
 
@@ -198,56 +205,27 @@ blk -b example_blk
    ```
 
 ## Regen - Register Description Language
-1. This environment offers a register description language for the user
-2. The language presents the following classes:
-   1. AccessPermissions - defines the access permissions of anything. Attributes:
-      1. sw_rd, bool - SW read permissions
-      2. sw_wr, bool - SW write permissions
-      3. hw_rd, bool - HW read permissions
-      2. hw_wr, bool - HW write permissions
-   2. Field - a field is a collection of bits. Attributes:
-      1. name       , str               - the field's name
-      2. description, str               - the field's description
-      3. permissions, AccessPermissions - the field's access permissions
-      4. width      , int               - the field's width in bits
-      5. offset     , int               - the field's offset within a register
-      6. reset_val  , int               - the field's reset value
-      7. we         , bool              - whether the field gets an external HW write-enable bit
-         1. CfgField - a subclass of Field, (HW RD, SW WR+RD) permissions
-         2. StsField - a subclass of Field, (HW WR+RD, SW RD) permissions
-   3. Address - address within the register file. single attribute - byte_address.
-   4. Register - a collection of fields. Attributes:
-      1. name          , str             - the register's name
-      2. description   , str             - the register's description
-      3. width         , int             - the register's width in bits
-      4. address       , Address         - the register's address within a register file
-      5. fields        , List[Field]     - a list of the fields in the register
-      6. occupied_bmap , ndarray(width,) - a bitmap of occupied bits within the register  
-   5. RegFile - a collection of registers. Attributes:
-      1. name           , str            - the regfile's name
-      2. description    , str            - the regfile's description
-      3. registers      , List[Register] - a list of the registers in the regfile
-      4. runnig_address , Address        - a pointer to the next non-occupied address in the register map
-      5. rgf_addr_width , int            - address space width in bits
-      6. rgf_reg_width  , int            - regfile register width, determined by the widest register
-3. Usage:
-   1. The register description script should be placed under the 'regs' subfolder of the block.
-   2. The register description script should be reffered to in the relevant view in the config under the "regs" section.
-   3. In the script, define a single RegFile, with a name matching the script name, by building it from: Fields --> Registers --> RegFile
-   4. There is no need to define offsets (unless you want to of course), the infrasturcture will handle that for you automatically
-   5. There is no need to handle addresses manualy (again, unless you want to)
-4. What do you get? 
-   1. The script you wrote translates automatically in all runs to a verilog module and placed in your filelist on the fly. The module contains:
-      1. A register file, with all the described registers
-      2. An APB slave
-      3. An APB IF for the SW to write register values to
-      4. HW IF containg all the relevant ports for the HW to interact with
-   2. You can use the reg alias [regen script](./regen.py) to create several outputs out of the register description:
-      1. Verilog module of the register file
-      2. Verilog instantiation of the register file module
-         * this can be appended straight to your view's top module using the -a flag
-      3. HTML document describing the register file
-5. You can find an example regfile description and the resulting outputs [here](./examples/regen/)
+This environment offers a register description language for the user.
+With the regen language, come multiple features:
+1. Register files are described in a python code.
+2. verilog, html, json files are all generated automatically from the python code. Use the ['reg' script](./regen.py) to get any of the described outputs.
+3. The verilog file is not needed for simulation, the translation process happens on the fly and appended to your filelist during the compilation process.
+4. The verilog file contains:
+   1. A register file, with all the described registers
+   2. An APB slave
+   3. An APB IF for the SW to write register values to
+   4. HW IF containg all the relevant ports for the HW to interact with
+5. Integrating an instance of the register file to the design is automatic.
+6. Infrastructure to write and read registers over APB, refering to different fields by name without having to handle addresses and strobes:
+   1. APB Transaction - base transaction class that translates a field name to an APB transaction in terms of addres and strobe.
+   2. APB Driver - drives different transactions
+   3. APB Monitor - monitors an APB bus for valid transactions
+7. Different type of attributes are built-in with endless other possibilities:
+   1. Configuration fields - SW write and read, HW read only
+   2. Status fields - HW write SW read
+   3. Interrupts - sticky bits with interrupt aggregation 
+   4. SW write and SW read pulses - to notify the HW of changes in desired fields
+For an elaboration, see the [README file](./regen/README.md)
 
 ## Simulation
 1. Use sim.py for all you simulation needs

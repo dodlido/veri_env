@@ -58,9 +58,13 @@ def create_block_folders(block_path):
     rtl_path = block_path / 'rtl'
     misc_path = block_path / 'misc'
     regs_path = block_path / 'regs'
+    block_name = block_path.stem
+    test_path = block_path / f'../../verification/{block_name}/tests'
     rtl_path.mkdir(parents=True, exist_ok=True) 
     misc_path.mkdir(parents=True, exist_ok=True) 
     regs_path.mkdir(parents=True, exist_ok=True) 
+    test_path.mkdir(parents=True, exist_ok=True) 
+    return test_path.parent
 
 def create_verilog_top(block_path):
        
@@ -96,7 +100,7 @@ def create_cfg_file(block_path):
     
     gen_note(f'created a block configuration file in {cfg_path}')
 
-def create_regs_files(block_path):
+def create_regs_files(block_path, create_rgf: bool):
     env_path = block_path / '.env'
     env_content = os.environ['tools_dir']
     vscode_path = block_path / '.vscode'
@@ -111,24 +115,27 @@ def create_regs_files(block_path):
     with open(json_path, 'w') as json_file:
         json_file.write(json_content)
     gen_note(f'wrote .env file at {env_path}')
-    block_name = block_path.stem
-    rgf_path = block_path / 'regs' / f'{block_name}_rgf.py'
-    with open(rgf_path, 'w') as rgf_file:
-        rgf_file.write('import os\n')
-        rgf_file.write('import sys\n')
-        rgf_file.write('tools_dir = os.environ["tools_dir"]\n')
-        rgf_file.write('sys.path.append(tools_dir)\n')
-        rgf_file.write('from regen.reg_classes import *\n')
+    if create_rgf:
+        block_name = block_path.stem
+        rgf_path = block_path / 'regs' / f'{block_name}_rgf.py'
+        with open(rgf_path, 'w') as rgf_file:
+            rgf_file.write('import os\n')
+            rgf_file.write('import sys\n')
+            rgf_file.write('tools_dir = os.environ["tools_dir"]\n')
+            rgf_file.write('sys.path.append(tools_dir)\n')
+            rgf_file.write('from regen.reg_classes import *\n')
 
 def main() -> None:
     # 0. Parse user arguments
     block_path = parse_args()
     # 1. Create directories
-    create_block_folders(block_path)
+    test_path = create_block_folders(block_path)
     # 2. Create verilog, config and some other stuff
     create_verilog_top(block_path)
     create_cfg_file(block_path)
-    create_regs_files(block_path)
+    create_regs_files(block_path, True)
+    create_regs_files(test_path, False)
+
 
 if __name__ == '__main__':
     main()

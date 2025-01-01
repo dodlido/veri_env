@@ -297,4 +297,3 @@ sim -v show
 
 ## TODO:
 * add --pretty flag to syn
-* add examples of taking block from different locations, different views, stub view using rtl view

@@ -52,12 +52,12 @@ The language presents the following classes:
    5. fields        , List[Field]     - a list of the fields in the register
    6. occupied_bmap , ndarray(width,) - a bitmap of occupied bits within the register  
 5.  RegFile - a collection of registers. Attributes:
-  1. name           , str            - the regfile's name
-   2. description    , str            - the regfile's description
-   3. registers      , List[Register] - a list of the registers in the regfile
-   4. runnig_address , Address        - a pointer to the next non-occupied address in the register map
-   5. rgf_addr_width , int            - address space width in bits
-   6. rgf_reg_width  , int            - regfile register width, determined by the widest register
+    1. name           , str            - the regfile's name
+    2. description    , str            - the regfile's description
+    3. registers      , List[Register] - a list of the registers in the regfile
+    4. runnig_address , Address        - a pointer to the next non-occupied address in the register map
+    5. rgf_addr_width , int            - address space width in bits
+    6. rgf_reg_width  , int            - regfile register width, determined by the widest register
 
 ## Usage in Design 
 

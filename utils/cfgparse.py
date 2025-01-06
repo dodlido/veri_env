@@ -284,3 +284,17 @@ def show_views(cfg_path: Path)-> None:
     
     gen_note(message)
     exit(0)
+
+def get_views(cfg_path: Path)-> List[str]:
+    
+    # read configuration file
+    cfg = configparser.ConfigParser()
+    cfg.read(cfg_path)
+
+    view_list = []
+
+    for view in cfg:
+        if view!='general' and view!='path' and view!='DEFAULT': # those are not actually views
+            view_list.append(view)
+    
+    return view_list

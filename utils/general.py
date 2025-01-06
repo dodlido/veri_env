@@ -171,6 +171,6 @@ def gen_get_descriptor(cfg_path: Path, view: str)-> Tuple[str, str, str, Path, P
     # Important directories
     rtl_dir   = ws_path / project_name / 'design'       / block_name / 'rtl'
     tb_dir    = ws_path / project_name / 'verification' / block_name / 'tests'
-    work_dir  = Path(os.environ['work_dir']) / str(ws_path).split('/')[-1] / project_name / block_name
+    work_dir  = Path(os.environ['work_dir']) / str(ws_path).split('/')[-1] / project_name / block_name / view
 
     return ws_path, project_name, block_name, rtl_dir, tb_dir, work_dir

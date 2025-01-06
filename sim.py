@@ -16,6 +16,7 @@ from utils.general import gen_show_blk
 from utils.general import gen_get_descriptor
 from utils.getlist import getlist
 from utils.cfgparse import show_views
+from utils.cfgparse import get_views
 from utils.cfgparse import get_top_level_path
 from utils.moduleparser import get_if
 from utils.git_funcs import show_repos
@@ -38,6 +39,7 @@ def parse_args():
     parser.add_argument('--waves', action='store_true', dest='wave', help='Create waves', default=False)
     parser.add_argument('--sim-time', type=int, action='store', dest='simtime', help='simulation time for automatically generated testbench, specified in [cycles]', default=(2**16))
     parser.add_argument('--no-coco', action='store_true', dest='nococo', help='compile only, no cocotb testbench', default=False)
+    parser.add_argument('--run-all', action='store_true', dest='runall', help='Run all views, compile only', default=False)
     
     # get arguments
     args = parser.parse_args(None if sys.argv[1:] else ['-h'])
@@ -46,12 +48,18 @@ def parse_args():
     cfg_path = gen_find_cfg_file(args.c, args.ws, args.p, args.b)
         
     # parse view name #
-    if not args.view:
+    if args.runall:
+        view_list = get_views(cfg_path)
+        nococo = True
+    elif not args.view:
         gen_err('view name must be provided to simulate')
     elif args.view=='show':
         show_views(cfg_path)
+    else:
+        view_list = [args.view]
+        nococo = args.nococo
         
-    return cfg_path, args.view, args.wave, args.simtime, args.nococo
+    return cfg_path, view_list, args.wave, args.simtime, nococo
 
 # Generates a makefile
 def _make_make(work_dir: str, top_level_module: str, block_name: str, results_names: List[str]=[], results_paths: List[str]=[]) -> Tuple[List[str], List[str]]:
@@ -343,21 +351,24 @@ def run_sim(work_dir: Path, top_level_module: str, waves: bool, nococo: bool=Fal
 
 def main() -> None:
     # 0. Parse user arguments
-    cfg_path, view, waves, simtime, nococo = parse_args()
-    # 1. Get descriptor from configuraiton file
-    ws_path, project_name, block_name, rtl_dir, tb_dir, work_dir = gen_get_descriptor(cfg_path, view)
-    # 2. Generate filelist
-    results_names, results_paths = getlist(ws_path, cfg_path, view, work_dir, True)
-    # 3. Find top-level-module
-    top_level_module = get_top_level_path(cfg_path, view).stem
-    # 4. Create test files: makefile and testbench
-    if not nococo:
-        results_names, results_paths = create_test(tb_dir, work_dir, top_level_module, rtl_dir, block_name, simtime, results_names, results_paths)
-    # 5. Run simulation
-    results_names, results_paths, failed = run_sim(work_dir, top_level_module, waves, nococo, results_names, results_paths)
-    # 6. Print log
-    log_header = 'Simulation Completed Successfully' if not failed else 'Simulation Failed'
-    gen_outlog(results_names, results_paths, log_header, failed)
+    cfg_path, view_list, waves, simtime, nococo = parse_args()
+    # Iterate over all views in view list:
+    for view in view_list:
+        results_names, results_paths = [], []
+        # 1. Get descriptor from configuraiton file
+        ws_path, project_name, block_name, rtl_dir, tb_dir, work_dir = gen_get_descriptor(cfg_path, view)
+        # 2. Generate filelist
+        results_names, results_paths = getlist(ws_path, cfg_path, view, work_dir, True, results_names, results_paths)
+        # 3. Find top-level-module
+        top_level_module = get_top_level_path(cfg_path, view).stem
+        # 4. Create test files: makefile and testbench
+        if not nococo:
+            results_names, results_paths = create_test(tb_dir, work_dir, top_level_module, rtl_dir, block_name, simtime, results_names, results_paths)
+        # 5. Run simulation
+        results_names, results_paths, failed = run_sim(work_dir, top_level_module, waves, nococo, results_names, results_paths)
+        # 6. Print log
+        log_header = f'View {view} - Simulation Completed Successfully' if not failed else f'View {view} - Simulation Failed'
+        gen_outlog(results_names, results_paths, log_header, failed)
 
 ############################
 ###                      ###

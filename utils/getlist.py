@@ -75,12 +75,12 @@ with open('{rgf_path}', 'w') as verilog_file:
 
 # Generates a file list
 def getlist(ws_path: Path, cfg_path: Path, view: str, work_dir: Path, create_file: bool=False, results_names: List[str]=[], results_paths: List[str]=[]) -> Tuple[List[str], List[str]]:
-    
+
     # generating a filelist is always first in line, create workdir
     work_dir.mkdir(parents=True, exist_ok=True)
 
     # get filelist
-    file_list, defines_list, regs_list = parse_cfg_rec(ws_path, cfg_path, view)
+    file_list, defines_list, regs_list = parse_cfg_rec(ws_path, cfg_path, view, [], [], [])
     
     # resolve paths to full path version
     for i in range(len(file_list)):

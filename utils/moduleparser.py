@@ -41,8 +41,54 @@ def _parse_port_declaration(port_declaration: str) -> tuple:
     else:
         raise ValueError("Invalid port declaration format:\n" + port_declaration)
 
+def _parse_parameter_declaration(parameter_declaration: str) -> tuple:
+    '''
+    parses a verilog parameter declaration of one of the following forms:
+    1. parameter <PARAM_NAME> = <PARAM_VALUE> , // <PARAM_COMMENT>
+    2. parameter <PARAM_TYPE> <PARAM_NAME> = <PARAM_VALUE> , // <PARAM_COMMENT>
+    3. parameter <PARAM_TYPE> [<PARAM_WIDTH>] <PARAM_NAME> = <PARAM_VALUE> , // <PARAM_COMMENT>
+    notes:
+    * each of the above forms can come with a comma between the "<PARAM_VALUE>" and "// <PARAM_COMMENT>" statements or without one
+    * each of the above forms can come with any number of white spaces between any of the form parts
+    The function returns the following tuple:
+    {<PARAM_TYPE>: str, <PARAM_NAME>: str, <PARAM_WIDTH>: str, <PARAM_VALUE>: str, <PARAM_COMMENT>: str}
+    '''
+    # Regular expression pattern to match the given parameter declaration formats
+    pattern = r"""
+        \s*               # Optional leading white space
+        parameter         # The keyword 'parameter'
+        \s+               # At least one space
+        (?P<type>\S+)?    # Optional parameter type (non-whitespace characters)
+        \s*               # Optional spaces
+        (\[?(?P<width>[\d:]+)?\]?)   # Optional width (digits or ranges, enclosed in square brackets)
+        \s+               # At least one space
+        (?P<name>\S+)     # Parameter name (non-whitespace characters)
+        \s*               # Optional spaces
+        =\s*              # Equals sign with optional spaces
+        (?P<value>[\S\s]+?)  # Parameter value (non-whitespace characters, possibly including quotes or other chars)
+        \s*               # Optional spaces
+        (?:,?\s*//\s*(?P<comment>.*))?   # Optional comment after "//" (may have spaces and a comma before)
+    """
+    # Match the pattern to the input string using regex
+    match = re.match(pattern, parameter_declaration, re.VERBOSE)
+    
+    if match:
+        # Extract the captured groups, use empty string if a group was not matched
+        param_type = match.group('type') or 'int'
+        param_name = match.group('name') or ''
+        param_width = match.group('width') or ''
+        param_value = match.group('value') or 'none'
+        param_comment = match.group('comment') or ''
+        
+        # Return as a tuple
+        return (param_type, param_name, param_width, param_value, param_comment)
+    else:
+        raise ValueError(f"Invalid parameter declaration format: {parameter_declaration}")
+
+
 def get_if(src_path: Path) -> List[Dict]:
     interface = []
+    params_dict = dict(types=[], names=[], widths=[], values=[], comments=[])
     start_flag = False
     break_point = ');'
     header_regex = r'^\s*//.*//\s*$'
@@ -61,9 +107,16 @@ def get_if(src_path: Path) -> List[Dict]:
                 break
             elif re.match(skip_regex, line): # No characters ==> skip this line
                 continue
-            elif 'parameter' in line or 'localparam' in line: # parameters ==> continue
+            elif 'parameter' in line: # user parameters ==> parse
+                param_type, param_name, param_width, param_value, param_comment = _parse_parameter_declaration(line)
+                params_dict['types'].append(param_type)
+                params_dict['names'].append(param_name)
+                params_dict['widths'].append(param_width)
+                params_dict['values'].append(param_value)
+                params_dict['comments'].append(param_comment)
+            elif 'localparam' in line: # local parameters ==> continue
                 continue
-            elif re.match(header_regex, line): # Found new header 
+            elif re.match(header_regex, line) and 'Parameter' not in line and 'parameter' not in line: # Found new header 
                 if curr_dict: # Previously assembled dict has ended here
                     interface.append(curr_dict)
                 curr_dict = dict(headline=line.lstrip('\t').rstrip('\n'), directions=[], types=[], widths=[], names=[], comments=[])
@@ -82,11 +135,15 @@ def get_if(src_path: Path) -> List[Dict]:
     if curr_dict:
         interface.append(curr_dict)
 
-    return interface
+    return interface, params_dict 
 
-def _get_inst(interface: List[Dict], module_name: str) -> str:
-    inst = module_name + ' i_' + module_name + ' (\n'
-    for dic in interface:
+def _get_inst(interface: List[Dict], module_name: str, params: dict) -> str:
+    inst = f'{module_name} #(\n'
+    for i, _ in enumerate(params['names']):
+        last_param = ',' if i==len(params['names'])-1 else ' '
+        inst += f'   .{params["names"][i]}({params["names"][i]}){last_param} // type: {params['types'][i]}, default: {params['values'][i]}, description: {params['comments'][i]}\n'
+    inst += f') i_{module_name} (\n'
+    for j, dic in enumerate(interface):
         inst += '   ' + dic["headline"] + '\n'
         for i, name in enumerate(dic["names"]):
             if dic["directions"][i] == 'input':
@@ -96,7 +153,9 @@ def _get_inst(interface: List[Dict], module_name: str) -> str:
             type_ = dic["types"][i]
             width = dic["widths"][i].replace(' ', '')
             comment = dic["comments"][i].replace('/','').lstrip()
-            inst += '   .' + name + ' (' + name + ') // ' + direction + ', ' + width + ' X ' + type_ + ' , ' + comment + '\n'
+            # print(f'{j}/{len(interface)-1} ; {i}/{}')
+            ket = ') // ' if (j==len(interface)-1) and (i==len(dic['names'])-1) else '), // '
+            inst += '   .' + name + ' (' + name + ket + direction + ', ' + width + ' X ' + type_ + ' , ' + comment + '\n'
     inst += ');'
     return inst
 
@@ -110,7 +169,7 @@ def _find_nth(haystack: str, needle: str, curr_max: int, n: int=1) -> int:
     else:
         return curr_max
 
-def _align_inst(inst: str) -> str:
+def _align_inst(inst: str, module_name: str) -> str:
    
     # Constants and stuff
     lines = inst.split('\n') # no header and footer
@@ -121,16 +180,31 @@ def _align_inst(inst: str) -> str:
    
     delimiter_list = ['(', ')', 'X', ',', ',']
     sum = 0
+    
 
     for delimiter in delimiter_list:
         max = 0
+        start = False
         # Find maximum occurance
         for line in lines:
+            if f'i_{module_name}' in line:
+                start = True
+                continue
+            elif not start and f'i_{module_name}' not in line:
+                continue
+
             if re.match(header_regex, line):
                 continue
             max = _find_nth(line[sum:], delimiter, max)
    
+        start = False
         for i, line in enumerate(lines):
+            if f'i_{module_name}' in line:
+                start = True
+                continue
+            elif not start and f'i_{module_name}' not in line:
+                continue
+
             if re.match(header_regex, line):
                 continue
             idx = line[sum:].find(delimiter) + sum
@@ -156,6 +230,6 @@ def get_inst(src_path: Path, src_module_name: str)->str:
 // the above instance was generated automatically by enst.py //
 // --------------------------------------------------------- //
 \n'''
-    _if = get_if(src_path)
-    inst = _get_inst(_if, src_module_name)
-    return header + _align_inst(inst) + footer
+    _if, params = get_if(src_path)
+    inst = _get_inst(_if, src_module_name, params)
+    return header + _align_inst(inst, src_module_name) + footer

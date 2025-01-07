@@ -76,9 +76,7 @@ def _parse_parameter_declaration(parameter_declaration: str) -> tuple:
     # Match the pattern to the input string using regex
     match = re.match(pattern, parameter_declaration, re.VERBOSE)
     
-    # Debug: Check if the regex matched the input
     if match:
-        print("Regex matched!")
         # Extract the captured groups, use empty string if a group was not matched
         param_type = match.group('type') or 'int'  # Default to 'int' if type is not provided
         param_name = match.group('name') or ''
@@ -146,7 +144,7 @@ def get_if(src_path: Path) -> List[Dict]:
 def _get_inst(interface: List[Dict], module_name: str, params: dict) -> str:
     inst = f'{module_name} #(\n'
     for i, _ in enumerate(params['names']):
-        last_param = ',' if i==len(params['names'])-1 else ' '
+        last_param = ' ' if i==len(params['names'])-1 else ','
         inst += f'   .{params["names"][i]}({params["names"][i]}){last_param} // type: {params['types'][i]}, default: {params['values'][i]}, description: {params['comments'][i]}\n'
     inst += f') i_{module_name} (\n'
     for j, dic in enumerate(interface):

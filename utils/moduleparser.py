@@ -111,14 +111,14 @@ def get_if(src_path: Path) -> List[Dict]:
                 break
             elif re.match(skip_regex, line): # No characters ==> skip this line
                 continue
-            elif 'parameter' in line: # user parameters ==> parse
+            elif not re.match(comment_regex, line) and 'parameter' in line: # user parameters ==> parse
                 param_type, param_name, param_width, param_value, param_comment = _parse_parameter_declaration(line.rstrip('\n'))
                 params_dict['types'].append(param_type)
                 params_dict['names'].append(param_name)
                 params_dict['widths'].append(param_width)
                 params_dict['values'].append(param_value)
                 params_dict['comments'].append(param_comment)
-            elif 'localparam' in line: # local parameters ==> continue
+            elif not re.match(comment_regex, line) and 'localparam' in line: # local parameters ==> continue
                 continue
             elif re.match(header_regex, line) and 'Parameter' not in line and 'parameter' not in line: # Found new header 
                 if curr_dict: # Previously assembled dict has ended here

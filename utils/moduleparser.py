@@ -43,7 +43,7 @@ def _parse_port_declaration(port_declaration: str) -> tuple:
 
 def _parse_parameter_declaration(parameter_declaration: str) -> tuple:
     '''
-    parses a verilog parameter declaration of one of the following forms:
+    Parses a Verilog parameter declaration of one of the following forms:
     1. parameter <PARAM_NAME> = <PARAM_VALUE> , // <PARAM_COMMENT>
     2. parameter <PARAM_TYPE> <PARAM_NAME> = <PARAM_VALUE> , // <PARAM_COMMENT>
     3. parameter <PARAM_TYPE> [<PARAM_WIDTH>] <PARAM_NAME> = <PARAM_VALUE> , // <PARAM_COMMENT>
@@ -53,28 +53,34 @@ def _parse_parameter_declaration(parameter_declaration: str) -> tuple:
     The function returns the following tuple:
     {<PARAM_TYPE>: str, <PARAM_NAME>: str, <PARAM_WIDTH>: str, <PARAM_VALUE>: str, <PARAM_COMMENT>: str}
     '''
+    # Clean the input by stripping any leading/trailing whitespace or newline characters
+    parameter_declaration = parameter_declaration.strip()
+
     # Regular expression pattern to match the given parameter declaration formats
     pattern = r"""
-        \s*               # Optional leading white space
-        parameter         # The keyword 'parameter'
-        \s+               # At least one space
-        (?P<type>\S+)?    # Optional parameter type (non-whitespace characters)
-        \s*               # Optional spaces
-        (\[?(?P<width>[\d:]+)?\]?)   # Optional width (digits or ranges, enclosed in square brackets)
-        \s+               # At least one space
-        (?P<name>\S+)     # Parameter name (non-whitespace characters)
-        \s*               # Optional spaces
-        =\s*              # Equals sign with optional spaces
-        (?P<value>[\S\s]+?)  # Parameter value (non-whitespace characters, possibly including quotes or other chars)
-        \s*               # Optional spaces
-        (?:,?\s*//\s*(?P<comment>.*))?   # Optional comment after "//" (may have spaces and a comma before)
+        \s*                           # Optional leading white space
+        parameter                     # The keyword 'parameter'
+        \s*                           # At least one space
+        (?P<type>(int|bit)?)          # Optional parameter type (non-whitespace characters)
+        \s*                           # Optional spaces after type
+        (\[?(?P<width>[\d:]+)?\]?)    # Optional width (digits or ranges, enclosed in square brackets)
+        \s+                           # At least one space before name
+        (?P<name>\S+)                 # Parameter name (non-whitespace characters)
+        \s*                           # Optional spaces
+        =\s*                          # Equals sign with optional spaces
+        (?P<value>[\S\s]+?)           # Parameter value (non-whitespace characters, possibly including quotes or other chars)
+        \s*                           # Optional spaces
+        (?:,?\s*//\s*(?P<comment>.*))? # Optional comment after "//" (allowing for optional comma before the comment)
     """
+    
     # Match the pattern to the input string using regex
     match = re.match(pattern, parameter_declaration, re.VERBOSE)
     
+    # Debug: Check if the regex matched the input
     if match:
+        print("Regex matched!")
         # Extract the captured groups, use empty string if a group was not matched
-        param_type = match.group('type') or 'int'
+        param_type = match.group('type') or 'int'  # Default to 'int' if type is not provided
         param_name = match.group('name') or ''
         param_width = match.group('width') or ''
         param_value = match.group('value') or 'none'
@@ -83,8 +89,8 @@ def _parse_parameter_declaration(parameter_declaration: str) -> tuple:
         # Return as a tuple
         return (param_type, param_name, param_width, param_value, param_comment)
     else:
+        # Debug: If no match, print the failure reason
         raise ValueError(f"Invalid parameter declaration format: {parameter_declaration}")
-
 
 def get_if(src_path: Path) -> List[Dict]:
     interface = []
@@ -108,7 +114,7 @@ def get_if(src_path: Path) -> List[Dict]:
             elif re.match(skip_regex, line): # No characters ==> skip this line
                 continue
             elif 'parameter' in line: # user parameters ==> parse
-                param_type, param_name, param_width, param_value, param_comment = _parse_parameter_declaration(line)
+                param_type, param_name, param_width, param_value, param_comment = _parse_parameter_declaration(line.rstrip('\n'))
                 params_dict['types'].append(param_type)
                 params_dict['names'].append(param_name)
                 params_dict['widths'].append(param_width)

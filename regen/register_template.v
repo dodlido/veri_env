@@ -32,3 +32,12 @@ always_ff @(posedge clk) begin
 end
 
 // RGF: {RGF_NAME}, REG: {REG_NAME}, REG_ADD: {REG_HEX_ADD}, FLD_NAME: {FLD_NAME}, FLD_BITS {FLD_ENDBIT}:{FLD_OFFSET} //
+
+//|~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~|//
+//|                                               |//
+//| 1. Project  :  veri_env                       |//
+//| 2. Author   :  Etay Sela                      |//
+//| 3. Date     :  2025-01-09                     |//
+//| 4. Version  :  v4.2.0                         |//
+//|                                               |//
+//|~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~|//

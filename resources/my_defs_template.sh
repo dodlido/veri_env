@@ -23,6 +23,7 @@ export libs_path=""  # Directory to cells library
 export tools_dir="${utils_dir}/veri_env/"
 alias setup='source ${setup_path}'
 alias sim='python3 ${tools_dir}sim.py'
+alias lint='python3 ${tools_dir}lint.py'
 alias syn='python3 ${tools_dir}syn.py'
 alias get='python3 ${tools_dir}get.py'
 alias add='python3 ${tools_dir}add.py'

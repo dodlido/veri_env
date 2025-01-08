@@ -100,7 +100,7 @@ def _make_make(work_dir: str, top_level_module: str, block_name: str, results_na
 # Get a list of input names and a list of output names for a given module
 def _get_sim_portlist(rtl_dir: Path, top_level_module: str, work_dir: Path, results_names: List[str]=[], results_paths: List[str]=[]) -> Tuple[List[str], List[str]]:
     top_level_path = rtl_dir / Path(top_level_module + '.v')
-    if_dict = get_if(top_level_path)
+    if_dict, _ = get_if(top_level_path)
     clks, rsts, inputs, outputs, panics  = [], [], [], [], []
     for dictionary in if_dict:
         for i, name in enumerate(dictionary["names"]):

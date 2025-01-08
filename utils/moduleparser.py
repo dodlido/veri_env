@@ -90,7 +90,7 @@ def _parse_parameter_declaration(parameter_declaration: str) -> tuple:
         # Debug: If no match, print the failure reason
         raise ValueError(f"Invalid parameter declaration format: {parameter_declaration}")
 
-def get_if(src_path: Path) -> List[Dict]:
+def get_if(src_path: Path) -> Tuple[List[Dict], Dict]:
     interface = []
     params_dict = dict(types=[], names=[], widths=[], values=[], comments=[])
     start_flag = False

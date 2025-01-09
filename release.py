@@ -15,6 +15,8 @@ from utils.git_funcs import clone_repo
 from utils.git_funcs import check_dirty
 from utils.git_funcs import check_cwd_for_repo
 from utils.git_funcs import check_remote_alignment
+from utils.cfgparse import get_views
+from utils.cfgparse import parse_cfg_rec
 
 def parse_args():
     
@@ -232,18 +234,31 @@ def remove_git_repo_and_set_read_only(repo_path):
    
     gen_note(f"set read-only permission for all files under {repo_path}")
 
+def check_local_children(directory):
+    cfg_files = []  # List to store the file paths of all .cfg files
+    for root, dirs, files in os.walk(directory):  # Recursively walk through directory
+        for file in files:
+            if file.endswith(".cfg"):  # Check if the file has a ".cfg" suffix
+                cfg_path = Path(os.path.join(root, file))
+                ws_path = cfg_path.parent.parent.parent.parent.parent
+                views_list = get_views(cfg_path)
+                for view in views_list:
+                    _, _, _ = parse_cfg_rec(ws_path, Path(os.path.join(root, file)), view, release=True)
+    
 # Usage: release.py -m <release message> --type <release type>
 def main() -> None:
     # 0. Parse flags
     m, t, ns = parse_args()
-    # 1. Infer new tag name
+    # 1. Check for 'local' children in configuration files
+    check_local_children(Path.cwd())
+    # 2. Infer new tag name
     new_tag = get_new_tag(t)
-    # 2. Update footers for .v files
+    # 3. Update footers for .v files
     if not ns:
         update_footers(new_tag)
-    # 3. Add, commit, push and create tag
+    # 4. Add, commit, push and create tag
     add_commit_push_n_tag(new_tag, m)
-    # 4. Clone repo to releases storage
+    # 5. Clone repo to releases storage
     store(new_tag)
 
 if __name__ == '__main__':

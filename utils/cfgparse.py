@@ -131,7 +131,7 @@ def _get_children(config: configparser, view: str, child_names: List[str], child
     return new_names, new_paths, new_views
 
 # build child path 
-def _get_child_cfg_path(ws_path: Path, child_name: str, child_type: str) -> Path:
+def _get_child_cfg_path(papa_cfg_path: Path, ws_path: Path, child_name: str, child_type: str, release=False) -> Path:
     
     # check validity of child name
     if child_name.count('/')!=2:
@@ -141,11 +141,13 @@ def _get_child_cfg_path(ws_path: Path, child_name: str, child_type: str) -> Path
     blk_name = child_name.split('/')[-1]
     project_name = child_name.split('/')[0]
 
-    # handle local child type
+    # handle local child type - child block is somewhere in your workspace
     if 'local' in child_type: 
+        if release:
+            gen_err(f'"local" child type found in {papa_cfg_path}. This is not allowed in releases')
         cfg_path = ws_path / Path(project_name) / Path('design') / Path(blk_name) / Path('misc') / Path(blk_name + '.cfg')
 
-    # handle release child type
+    # handle release child type - child block is in your local storage
     elif 'release' in child_type:
 
         # check child type validity
@@ -157,6 +159,10 @@ def _get_child_cfg_path(ws_path: Path, child_name: str, child_type: str) -> Path
             version = child_type.split(',')[-1].replace(' ', '')
             cfg_path = Path(os.environ['rls_dir']) / Path(project_name) / Path('v' + version) / Path('design') / Path(blk_name) / Path('misc') / Path(blk_name + '.cfg')
     
+    # child block is in the same project as parent block
+    elif 'project' in child_type:
+        cfg_path = papa_cfg_path.parent.parent.parent / blk_name / 'misc' / f'{blk_name}.cfg'
+    
     # throw an error for any other child type
     else:
         gen_err(f'child type {child_type} is not supported yet', 2)
@@ -167,7 +173,7 @@ def _get_child_cfg_path(ws_path: Path, child_name: str, child_type: str) -> Path
     return cfg_path
 
 # parses 'path' section and returns names and paths of valid childs
-def _get_paths(ws_path: Path, config: configparser, cfg_path: Path) -> Tuple[List[str], List[Path]]:
+def _get_paths(ws_path: Path, config: configparser, cfg_path: Path, release=False) -> Tuple[List[str], List[Path]]:
     
     # parse 'path' section
     children, locations = _parse_sect(config, 'path', None, False, False)
@@ -175,7 +181,7 @@ def _get_paths(ws_path: Path, config: configparser, cfg_path: Path) -> Tuple[Lis
     # infer path to children configuration paths
     paths = []
     for i, child in enumerate(children):
-        paths.append(_get_child_cfg_path(ws_path, child, locations[i]))
+        paths.append(_get_child_cfg_path(cfg_path, ws_path, child, locations[i], release))
         
     return children, paths
 
@@ -232,21 +238,21 @@ def get_top_level_path(cfg_path: Path, view: str) -> Path:
     return top_level_path
 
 # parses through a config file, getting entire file list from all children
-def parse_cfg_rec(ws_path: Path, cfg_path: Path, view: str, file_list: List[Path] = [], defines_list: List[str] = [], regs_list=[]) -> Tuple[List[Path], List[str], List[Path]]:
+def parse_cfg_rec(ws_path: Path, cfg_path: Path, view: str, file_list: List[Path] = [], defines_list: List[str] = [], regs_list=[], release=False) -> Tuple[List[Path], List[str], List[Path]]:
     
     # read configuration file
     cfg = configparser.ConfigParser()
     cfg.read(cfg_path)
 
     # get children names paths and views
-    names, paths = _get_paths(ws_path, cfg, cfg_path)
+    names, paths = _get_paths(ws_path, cfg, cfg_path, release)
     names, paths, views = _get_children(cfg, view, names, paths)
 
     # not done yet, go over children names and re-call recurssion
     if names:
         for i,_ in enumerate(names):
             # for every children in list re-call this function
-            additional_files, additional_defines, additional_regs = parse_cfg_rec(ws_path, paths[i], views[i], file_list, defines_list, regs_list)
+            additional_files, additional_defines, additional_regs = parse_cfg_rec(ws_path, paths[i], views[i], file_list, defines_list, regs_list, release)
             file_list += additional_files
             defines_list += additional_defines
             regs_list += additional_regs

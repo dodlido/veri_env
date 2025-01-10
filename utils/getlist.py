@@ -87,18 +87,8 @@ def getlist(ws_path: Path, cfg_path: Path, view: str, work_dir: Path, create_fil
         file_list[i] = file_list[i].resolve()
     
     # remove duplicates
-    print('##################')
-    for fl in file_list:
-        print(fl.stem)
-    print('##################')
     seen = set()
     file_list = [x for x in file_list if not (x in seen or seen.add(x))]
-    
-    # file_list = list(set(file_list))
-    print('##################')
-    for fl in file_list:
-        print(fl.stem)
-    print('##################')
 
     # Create defines file and append it to filelist head
     file_list = build_defines_file(defines_list, work_dir, file_list)

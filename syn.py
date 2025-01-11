@@ -46,20 +46,33 @@ def parse_args():
         
     return cfg_path, args.view, args.show
 
-# update yosys script in workdir from template
-def _create_ys_script(block_name: str, top_level_module: str, work_dir: Path, show: bool=False, results_names: List[str]=[], results_paths: List[str]=[]) -> Tuple[Path, Path, List[str], List[str]]:
-    show_char = '#' if not show else ''
-
+# convert code to verilog, remove sv constructs 
+def _sv2v(work_dir: Path):
+    
     # validate filelist path
     filelist_path = work_dir / Path('design.fl')
     gen_validate_path(filelist_path, 'locate filelist to send to yosys')
 
+    # start building command
+    command = ['sv2v']
+
     # read filelist
     with open(filelist_path, 'r') as file:
-        flattened_filelist = file.read()
+        for line in file:
+            command.append(line.strip('\n').strip())
     
-    # filelist is one gigantic row
-    flattened_filelist = flattened_filelist.replace('\n', ' ')
+    # run conversion
+    synth_file = work_dir / 'synth_preprocess.v'
+    with open(synth_file, 'w') as sf:
+        subprocess.run(command, stdout=sf)
+
+# update yosys script in workdir from template
+def _create_ys_script(block_name: str, top_level_module: str, work_dir: Path, show: bool=False, results_names: List[str]=[], results_paths: List[str]=[]) -> Tuple[Path, Path, List[str], List[str]]:
+    show_char = '#' if not show else ''
+
+    # validate synthfile is there
+    synthfile = work_dir / 'synth_preprocess.v'
+    gen_validate_path(synthfile, 'locate synthesizable verilog to send to yosys')
 
     # validate .lib path
     libraries_path = Path(os.environ['libs_path'])
@@ -75,7 +88,7 @@ def _create_ys_script(block_name: str, top_level_module: str, work_dir: Path, sh
     # read template and update the contents with the given parameters
     with open(template_path, 'r') as file:
         script_content = file.read()
-    script_content = script_content.replace('{FILELIST}', flattened_filelist)
+    script_content = script_content.replace('{FILELIST}', str(synthfile))
     script_content = script_content.replace('{TOP_LEVEL_MODULE}', top_level_module)
     script_content = script_content.replace('{LIB}', str(libraries_path))
     script_content = script_content.replace('{OUTPUT_PATH}', str(output_path))
@@ -136,6 +149,8 @@ def main() -> None:
     results_names, results_paths = getlist(ws_path, cfg_path, view, work_dir, True)
     # 3. Find top level module
     top_level_module = get_top_level_path(cfg_path, view).stem
+    # 4. Pre-process Systemverilog code
+    _sv2v(work_dir)
     # 3. Create yosys script in workdir
     script_path, output_path, results_names, results_paths = _create_ys_script(block_name, top_level_module, work_dir, show, results_names, results_paths)
     # 4. Run yosys script

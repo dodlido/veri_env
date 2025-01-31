@@ -160,6 +160,9 @@ def _gen_tb(tb_dir: Path, work_dir: Path, block_name: str, simtime: int, results
     homedir_tb_path = tb_dir / Path(block_name + '_tb.py') 
     workdir_tb_path = work_dir / Path(block_name + '_tb.py')   
     auto_tb_path = Path(os.environ['tools_dir']) / Path('resources/auto_tb_template.py')
+    logfile = work_dir / f'run.log'
+    if logfile.is_file():
+        os.remove(logfile)
     
     # Generate automatic testbench:
     if not homedir_tb_path.is_file():
@@ -176,6 +179,17 @@ def _gen_tb(tb_dir: Path, work_dir: Path, block_name: str, simtime: int, results
         tb_contents = 'import sys\n' 
         tb_contents += 'sys.path.append("' + str(homedir_tb_path.parent.parent) + '")\n'
         tb_contents += 'sys.path.append("' + os.environ['tools_dir'] + '")\n'
+        tb_contents += f'''
+import logging
+import cocotb
+from cocotb.log import SimTimeContextFilter, SimColourLogFormatter, SimLogFormatter
+strm_hdlr = logging.StreamHandler(sys.stdout)
+strm_hdlr.addFilter(SimTimeContextFilter())
+strm_hdlr.setFormatter(SimColourLogFormatter())
+file_hdlr = logging.FileHandler('{logfile}')
+file_hdlr.addFilter(SimTimeContextFilter())
+file_hdlr.setFormatter(SimLogFormatter())
+cocotb.logging.getLogger().handlers = [strm_hdlr, file_hdlr]\n'''
         with open(homedir_tb_path, 'r') as file:
             tb_contents += file.read()
     
@@ -184,7 +198,9 @@ def _gen_tb(tb_dir: Path, work_dir: Path, block_name: str, simtime: int, results
         worktb_file.write(tb_contents)
     gen_note(f'testbench written to {workdir_tb_path}')
     results_names.append('testbench')
+    results_names.append('run log')
     results_paths.append(workdir_tb_path)
+    results_paths.append(logfile)
     
     return results_names, results_paths
 

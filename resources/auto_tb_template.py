@@ -1,12 +1,23 @@
 import cocotb
 from cocotb.triggers import FallingEdge, Timer, RisingEdge
 from cocotb.clock import Clock
-import os
 import random
 import sys
-from pathlib import Path
-import math
-from typing import Tuple
+import cocotb
+from cocotb.clock import Clock
+import cocotb.regression
+import cocotb.utils
+from cocotb.triggers import RisingEdge
+import logging
+from cocotb.log import SimTimeContextFilter, SimColourLogFormatter, SimLogFormatter
+
+strm_hdlr = logging.StreamHandler(sys.stdout)
+strm_hdlr.addFilter(SimTimeContextFilter())
+strm_hdlr.setFormatter(SimColourLogFormatter())
+file_hdlr = logging.FileHandler('run.log')
+file_hdlr.addFilter(SimTimeContextFilter())
+file_hdlr.setFormatter(SimLogFormatter())
+cocotb.logging.getLogger().handlers = [strm_hdlr, file_hdlr]
 
 work_dir = "{WORK_DIR}"
 iterations = int({ITERATIONS})

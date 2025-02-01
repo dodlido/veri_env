@@ -85,16 +85,16 @@ def getlist(ws_path: Path, cfg_path: Path, view: str, work_dir: Path, create_fil
     # resolve paths to full path version
     for i in range(len(file_list)):
         file_list[i] = file_list[i].resolve()
-    
-    # remove duplicates
-    seen = set()
-    file_list = [x for x in file_list if not (x in seen or seen.add(x))]
 
     # Create defines file and append it to filelist head
     file_list = build_defines_file(defines_list, work_dir, file_list)
 
     # Create verilog files from python descriptors
     file_list = build_verilog_rgfs(regs_list, work_dir, file_list)
+
+    # remove duplicates
+    seen = set()
+    file_list = [x for x in file_list if not (x in seen or seen.add(x))]
 
     # Create filelist
     if create_file:

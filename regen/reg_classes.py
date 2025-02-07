@@ -121,7 +121,7 @@ class Field(object):
         hw_wr_per_str = permissions_to_bit_str(self.permissions.hw_wr)
 
         # choose between internal and external HW we
-        hw_int_we_str = '{regfile_name}_{register_name}_{self.name}_hw_we' if self.we else '1\'b1'
+        hw_int_we_str = f'{regfile_name}_{register_name}_{self.name}_hw_we' if self.we else '1\'b1'
 
         # mask HW write option in case of no permissions
         mask_hw_wr_str = '//' if not self.permissions.hw_wr else '  '
@@ -163,6 +163,7 @@ class Field(object):
     def parse_we(self, we: bool=False) -> bool:
         if not self.permissions.hw_wr and we:
             gen_err(f'unable to set write-enable attribute to a field without HW write permissions (field {self.name})') 
+        return we
 
 class CfgField(Field):
     def __init__(self, name = 'field', description = 'some description', width = 8, offset = 0):

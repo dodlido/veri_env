@@ -4,6 +4,7 @@ import subprocess
 import argparse
 import sys
 import os
+import re
 from utils.general import gen_err
 from utils.general import gen_note
 from utils.general import gen_validate_path
@@ -40,6 +41,8 @@ def parse_args():
     parser.add_argument('--sim-time', type=int, action='store', dest='simtime', help='simulation time for automatically generated testbench, specified in [cycles]', default=(2**16))
     parser.add_argument('--no-coco', action='store_true', dest='nococo', help='compile only, no cocotb testbench', default=False)
     parser.add_argument('--run-all', action='store_true', dest='runall', help='Run all views, compile only', default=False)
+    parser.add_argument('--test', action='store', type=str, dest='t', help='name of cocotb test to run, should be located under verification\\block\\tests\\TEST_NAME.py', required=False)
+    parser.add_argument('--sim-arg', type=str, nargs='*', help='Optional test arguments, use --sim-arg ARG1=VAL1 or --sim-arg ARG2 if the argument is a boolean trigger', dest='simargs', required=False)
     
     # get arguments
     args = parser.parse_args(None if sys.argv[1:] else ['-h'])
@@ -59,7 +62,7 @@ def parse_args():
         view_list = [args.view]
         nococo = args.nococo
         
-    return cfg_path, view_list, args.wave, args.simtime, nococo
+    return cfg_path, view_list, args.wave, args.simtime, nococo, args.t, args.simargs
 
 # Generates a makefile
 def _make_make(work_dir: str, top_level_module: str, block_name: str, results_names: List[str]=[], results_paths: List[str]=[]) -> Tuple[List[str], List[str]]:
@@ -153,8 +156,82 @@ def _get_sim_portlist(rtl_dir: Path, top_level_module: str, work_dir: Path, resu
     results_paths.append(output_dir)
     return results_names, results_paths
 
+def get_sim_args(test_path: Path, test_name: str) -> List[str]:
+    '''
+    This function parses through a given test file in 'test_path' looking for a function
+    named 'test_name' and returns a list of the function arguments, ignoring type annotations.
+    '''
+    # Read the content of the file
+    with open(test_path, 'r') as file:
+        content = file.read()
+
+    # Create a regex pattern to find the function definition, including 'async def'
+    pattern = re.compile(r'\basync\s+def\s+' + re.escape(test_name) + r'\s*\((.*?)\)', re.DOTALL)
+    
+    # Search for the function definition
+    match = pattern.search(content)
+    
+    if match:
+        # Extract the argument part from the function signature
+        args_str = match.group(1).strip()
+        
+        # Remove any typing annotations (e.g., : int)
+        args_str = re.sub(r':\s*\w+', '', args_str)
+        
+        # Remove any default values (e.g., = 3)
+        args_str = re.sub(r'=\s*[^,]+', '', args_str)
+        
+        # Split the arguments by commas and remove leading/trailing whitespaces
+        args = [arg.strip() for arg in args_str.split(',') if arg.strip()]
+        
+        return args
+    else:
+        raise ValueError(f"Function '{test_name}' not found in the file '{test_path}'.")
+
+
+def append_test(header: str, args_list: List[str], test_path: Path, test_name: str) -> str:
+    '''
+    1. Reads the content of 'test_path' into a temporary variable.
+    2. Finds the line of code that defines a function 'test_name' (async def test_name) in the temporary variable.
+    3. Appends to the temporary variable the lines in 'args_list' after the function docstring and before the return statement.
+    4. Appends the temporary variable to the header and returns the resulting string.
+    '''
+    
+    # Step 1: Read the content of the file
+    with test_path.open('r') as f:
+        test_content = f.read()
+    
+    # Step 2: Find the line that defines the function 'test_name'
+    start_index = test_content.find(f'async def {test_name}(') if 'async' in test_content else test_content.find(f'def {test_name}(')
+    
+    if start_index == -1:
+        raise ValueError(f"Test function {test_name} not found in the provided file.")
+    
+    # Step 3: Find the end of the function definition
+    function_line_end = test_content.find('\n', start_index)
+    function_content = test_content[start_index:function_line_end]
+    
+    # Step 4: Check if the function has a docstring
+    docstring_start = test_content.find('\'\'\'', function_line_end)
+    docstring_end = test_content.find('\'\'\'', docstring_start + 3)
+    
+    if docstring_start != -1 and docstring_end != -1:
+        # Insert after the docstring
+        insert_position = docstring_end + 3  # Just after the closing triple quotes of the docstring
+    else:
+        # If no docstring is found, insert after the function header
+        insert_position = function_line_end
+    
+    # Step 5: Insert the args_list content after the docstring
+    modified_test_content = test_content[:insert_position] + '\n' + '\n'.join(args_list) + '\n' + test_content[insert_position:]
+    
+    # Step 6: Append the modified test content to the header
+    result = header + '\n' + modified_test_content
+    
+    return result
+
 # Generates a generic testbench
-def _gen_tb(tb_dir: Path, work_dir: Path, block_name: str, simtime: int, results_names: List[str]=[], results_paths: List[str]=[]) -> Tuple[List[str], List[str]]:
+def _gen_tb(tb_dir: Path, work_dir: Path, block_name: str, simtime: int, test_name: str, sim_args: List[str], results_names: List[str]=[], results_paths: List[str]=[]) -> Tuple[List[str], List[str]]:
     
     # Paths to Testbenches
     homedir_tb_path = tb_dir / Path(block_name + '_tb.py') 
@@ -164,22 +241,11 @@ def _gen_tb(tb_dir: Path, work_dir: Path, block_name: str, simtime: int, results
     if logfile.is_file():
         os.remove(logfile)
     
-    # Generate automatic testbench:
-    if not homedir_tb_path.is_file():
-        gen_note(f'there is no existing testbench in {homedir_tb_path}, an automatic one will be generated')
-        with open(auto_tb_path, 'r') as file:
-            tb_contents = file.read()
-        tb_contents = tb_contents.replace('{WORK_DIR}', str(work_dir))
-        tb_contents = tb_contents.replace('{ITERATIONS}', str(simtime))
-    # Get existing testbench from verification directory:
-    else:
-        gen_note(f'found an existing testbench in {homedir_tb_path}, this will be used for simulation')
-        # add verification directory to sys path in case there are some additional files in there:
-        sys.path.insert(0, str(tb_dir.parent)) 
-        tb_contents = 'import sys\n' 
-        tb_contents += 'sys.path.append("' + str(homedir_tb_path.parent.parent) + '")\n'
-        tb_contents += 'sys.path.append("' + os.environ['tools_dir'] + '")\n'
-        tb_contents += f'''
+    # Add some things to the user specified test
+    user_tb_added_content = f'''
+import sys
+sys.path.append('{str(homedir_tb_path.parent.parent)}')
+sys.path.append('{os.environ['tools_dir']}')
 import logging
 import cocotb
 from cocotb.log import SimTimeContextFilter, SimColourLogFormatter, SimLogFormatter
@@ -190,6 +256,74 @@ file_hdlr = logging.FileHandler('{logfile}')
 file_hdlr.addFilter(SimTimeContextFilter())
 file_hdlr.setFormatter(SimLogFormatter())
 cocotb.logging.getLogger().handlers = [strm_hdlr, file_hdlr]\n'''
+
+    # Take specified test:
+    if test_name:
+
+        sys.path.insert(0, str(tb_dir.parent)) 
+        spec_tb_path = tb_dir / f'{test_name}.py'
+        
+        # Test show keyword - print all tests
+        if test_name=='show':
+            gen_note('availabel tests:')
+            for test in spec_tb_path.parent.iterdir():
+                print(test.stem)
+            exit(2)
+
+        gen_validate_path(spec_tb_path, f'locate specified test {test_name}')
+        gen_note(f'simulating the test found in the user specified path {spec_tb_path}')
+        tb_contents = user_tb_added_content
+        
+        # Find test actual arguments
+        actual_sim_args = get_sim_args(spec_tb_path, test_name)
+        
+        # Parse supplied arguments: split to keys and values, None value means this is a trigger
+        given_sim_args = sim_args
+        given_sim_arg_key_list, given_sim_arg_val_list, given_sim_arg_py_code = [], [], []
+        if sim_args:
+            for giv_arg in given_sim_args:
+                if giv_arg.count('=')==1:
+                    given_sim_arg_key_list.append(giv_arg.split('=')[0].strip())
+                    given_sim_arg_val_list.append(giv_arg.split('=')[1].strip())
+                elif giv_arg.count('=')==0:
+                    given_sim_arg_key_list.append(giv_arg.strip())
+                    given_sim_arg_val_list.append(None)
+                else:
+                    gen_err(f'--sim-arg expects only one of 2 options:\n1) --sim-arg ARG=VAL\n2) --sim-arg ARG\n but found {giv_arg}')
+            
+            # check if show key-word is in sim-args:
+            if 'show' in given_sim_args:
+                gen_note(f'possible simulation arguments for the selected test:')
+                for act_arg in actual_sim_args:
+                    if act_arg != 'dut':
+                        print(act_arg)
+                exit(2)
+
+            # Look through all actual args, for each one cheack if an argument was supplied or not
+            # if an argument was supplied, build the python code to add to the test out of the key, val dict
+            for act_arg in actual_sim_args:
+                if act_arg in given_sim_arg_key_list:
+                    arg_val = given_sim_arg_val_list[given_sim_arg_key_list.index(act_arg)]
+                    py_str = f'    {act_arg} = {arg_val}\n' if arg_val else f'    {act_arg} = True\n'
+                    given_sim_arg_py_code.append(py_str)
+            
+        # read the testbench and append the arguments to the function
+        tb_contents = append_test(tb_contents, given_sim_arg_py_code, spec_tb_path, test_name)
+                
+    # Generate automatic testbench:
+    elif not homedir_tb_path.is_file():
+        gen_note(f'there is no existing testbench in {homedir_tb_path}, an automatic one will be generated')
+        with open(auto_tb_path, 'r') as file:
+            tb_contents = file.read()
+        tb_contents = tb_contents.replace('{WORK_DIR}', str(work_dir))
+        tb_contents = tb_contents.replace('{ITERATIONS}', str(simtime))
+    
+    # Get existing testbench from verification directory:
+    else:
+        gen_note(f'found an existing testbench in {homedir_tb_path}, this will be used for simulation')
+        # add verification directory to sys path in case there are some additional files in there:
+        sys.path.insert(0, str(tb_dir.parent)) 
+        tb_contents = user_tb_added_content
         with open(homedir_tb_path, 'r') as file:
             tb_contents += file.read()
     
@@ -337,9 +471,9 @@ def _wave(work_dir: str, results_names: List[str]=[], results_paths: List[str]=[
         gen_err('no vcd files found')
 
 # create test files: makefile and testbench
-def create_test(tb_dir: Path, work_dir: Path, top_level_module: str, rtl_dir: Path, block_name: str, simtime: int, results_names: List[str]=[], results_paths: List[str]=[]) -> Tuple[List[str], List[str]]:
+def create_test(tb_dir: Path, work_dir: Path, top_level_module: str, rtl_dir: Path, block_name: str, simtime: int, test_name: str, sim_args: List[str], results_names: List[str]=[], results_paths: List[str]=[]) -> Tuple[List[str], List[str]]:
     results_names, results_paths = _make_make(work_dir, top_level_module, block_name, results_names, results_paths)
-    results_names, results_paths = _gen_tb(tb_dir, work_dir, block_name, simtime, results_names, results_paths)
+    results_names, results_paths = _gen_tb(tb_dir, work_dir, block_name, simtime, test_name, sim_args, results_names, results_paths)
     results_names, results_paths = _get_sim_portlist(rtl_dir, top_level_module, work_dir, results_names, results_paths)
     return results_names, results_paths
 
@@ -367,7 +501,7 @@ def run_sim(work_dir: Path, top_level_module: str, waves: bool, nococo: bool=Fal
 
 def main() -> None:
     # 0. Parse user arguments
-    cfg_path, view_list, waves, simtime, nococo = parse_args()
+    cfg_path, view_list, waves, simtime, nococo, test_name, sim_args = parse_args()
     # Iterate over all views in view list:
     for view in view_list:
         results_names, results_paths = [], []
@@ -379,7 +513,7 @@ def main() -> None:
         top_level_module = get_top_level_path(cfg_path, view).stem
         # 4. Create test files: makefile and testbench
         if not nococo:
-            results_names, results_paths = create_test(tb_dir, work_dir, top_level_module, rtl_dir, block_name, simtime, results_names, results_paths)
+            results_names, results_paths = create_test(tb_dir, work_dir, top_level_module, rtl_dir, block_name, simtime, test_name, sim_args, results_names, results_paths)
         # 5. Run simulation
         results_names, results_paths, failed = run_sim(work_dir, top_level_module, waves, nococo, results_names, results_paths)
         # 6. Print log

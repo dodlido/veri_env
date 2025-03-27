@@ -1,7 +1,7 @@
 import requests
 import git
 import os
-import socket
+import json
 from pathlib import Path
 from typing import List
 from utils.general import gen_err
@@ -57,12 +57,32 @@ def _get_github_repositories() -> List[str]:
 
 # check whether repo is valid
 def _is_valid_repo_path(repo_path):
+    # Extract the part after the colon, which is in the form of userName/repoName.git
     try:
-        host = repo_path.split('@')[1].split(':')[0]
-        socket.create_connection((host, 80), timeout=10)  # Try to connect to the host (port 80 or 443)
-        return True
-    except socket.error:
-        gen_err(f"unable to reach repository at {repo_path}")
+        # Strip the git@github.com: part and remove the .git extension
+        repo_path = repo_path.split(':')[1].replace('.git', '')
+        
+        # Extract the username and repository name from the repo path
+        username, repo_name = repo_path.split('/')
+        
+        # GitHub API URL to check the repository
+        api_url = f"https://api.github.com/repos/{username}/{repo_name}"
+        
+        # Send a GET request to check if the repository exists
+        response = requests.get(api_url)
+        
+        # If the response status code is 200, the repository exists
+        if response.status_code == 200:
+            return True
+        # Return False if repository does not exist (status code 404)
+        elif response.status_code == 404:
+            return False
+        else:
+            # Handle other HTTP status codes (e.g., 403, 500, etc.)
+            print(f"Unexpected status code {response.status_code}: {response.text}")
+            return False
+    except Exception as e:
+        print(f"Error: {e}")
         return False
 
 # check if CWD is within some valid git repository
@@ -142,7 +162,7 @@ def create_github_repository(repo_name):
     if _is_valid_repo_path(repo_path):
         gen_err(f'repo {repo_path} already exists')
 
-    url = f'https://api.github.com/users/repos'
+    url = f'https://api.github.com/user/repos'
     headers = {
         'Authorization': f'token {token}',
         'Accept': 'application/vnd.github.v3+json'
@@ -154,7 +174,7 @@ def create_github_repository(repo_name):
     }
     
     try:
-        response = requests.post(url, json=payload, headers=headers)
+        response = requests.post(url, data=json.dumps(payload), headers=headers)
         response.raise_for_status()
         gen_note(f'repository {repo_name} created successfully on GitHub.')
     except requests.exceptions.RequestException as e:

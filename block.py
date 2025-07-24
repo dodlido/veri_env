@@ -19,6 +19,7 @@ def parse_args():
     parser.add_argument('-w', '--workspace', type=str, action='store', dest='ws', help='Path to workspace , not needed if within a workspace       , "show" to display options', required=False)
     parser.add_argument('-p', '--project', type=str, action='store', dest='p'   , help='Project name      , not needed if you are within a project , "show" to display options', required=False)
     parser.add_argument('-b', '--block-name', type=str, action='store', dest='b', help='Block name        , not needed if you are within a block   , "show" to display options', required=False)
+    parser.add_argument('-t', '--type', type=str, action='store', dest='t'     , help='Block type, {design, verif, both}, defaults to "both"', required=False)
 
     # get arguments
     args = parser.parse_args(None if sys.argv[1:] else ['-h'])
@@ -51,19 +52,26 @@ def parse_args():
     block_path = proj_path / 'design' / args.b
     if block_path.is_dir():
         gen_err(f'path {block_path} is already occupied, did not override it')
-    
-    return block_path
 
-def create_block_folders(block_path):
+    # verification / design:
+    _type = 'both' if not args.t else args.t
+    design = _type=='both' or _type=='design' 
+    verif  = _type=='both' or _type=='verif' 
+    
+    return block_path, design, verif
+
+def create_block_folders(block_path, design, verif):
     rtl_path = block_path / 'rtl'
     misc_path = block_path / 'misc'
     regs_path = block_path / 'regs'
     block_name = block_path.stem
-    test_path = block_path / f'../../verification/{block_name}/tests'
-    rtl_path.mkdir(parents=True, exist_ok=True) 
-    misc_path.mkdir(parents=True, exist_ok=True) 
-    regs_path.mkdir(parents=True, exist_ok=True) 
-    test_path.mkdir(parents=True, exist_ok=True) 
+    test_path = (block_path / f'../../verification/{block_name}/tests').resolve()
+    if design:
+        rtl_path.mkdir(parents=True, exist_ok=True) 
+        misc_path.mkdir(parents=True, exist_ok=True) 
+        regs_path.mkdir(parents=True, exist_ok=True) 
+    if verif:
+        test_path.mkdir(parents=True, exist_ok=True) 
     return test_path.parent
 
 def create_verilog_top(block_path):
@@ -103,15 +111,19 @@ def create_cfg_file(block_path):
 def create_regs_files(block_path, create_rgf: bool):
     env_path = block_path / '.env'
     env_content = os.environ['tools_dir']
+    pbe_content = str(Path(os.environ['utils_dir']) / 'pbe')
     vscode_path = block_path / '.vscode'
     vscode_path.mkdir(parents=True, exist_ok=True) 
     json_path = vscode_path / 'settings.json'
     json_template_path = Path(env_content) / 'resources' / 'vscode_settings_template.json'
     with open(env_path, 'w') as env_file:
         env_file.write(env_content)
+        env_file.write('\n')
+        env_file.write(pbe_content)
     with open(json_template_path, 'r') as json_template_file:
         json_template = json_template_file.read()
     json_content = json_template.replace('{TOOLS_DIR}', env_content)
+    json_content = json_content.replace('{PBE_DIR}', pbe_content)
     with open(json_path, 'w') as json_file:
         json_file.write(json_content)
     gen_note(f'wrote .env file at {env_path}')
@@ -127,15 +139,16 @@ def create_regs_files(block_path, create_rgf: bool):
 
 def main() -> None:
     # 0. Parse user arguments
-    block_path = parse_args()
+    block_path, design, verif = parse_args()
     # 1. Create directories
-    test_path = create_block_folders(block_path)
+    test_path = create_block_folders(block_path, design, verif)
     # 2. Create verilog, config and some other stuff
-    create_verilog_top(block_path)
-    create_cfg_file(block_path)
-    create_regs_files(block_path, True)
-    create_regs_files(test_path, False)
-
+    if design:
+        create_verilog_top(block_path)
+        create_cfg_file(block_path)
+        create_regs_files(block_path, True)
+    if verif:
+        create_regs_files(test_path, False)
 
 if __name__ == '__main__':
     main()

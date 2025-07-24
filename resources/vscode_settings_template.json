@@ -1,8 +1,10 @@
 {
     "python.autoComplete.extraPaths": [
-        "{TOOLS_DIR}"
+        "{TOOLS_DIR}",
+        "{PBE_DIR}"
     ],
     "python.analysis.extraPaths": [
-        "{TOOLS_DIR}"
+        "{TOOLS_DIR}",
+        "{PBE_DIR}"
     ]
 }

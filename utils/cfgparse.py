@@ -262,7 +262,7 @@ def parse_cfg_rec(ws_path: Path, cfg_path: Path, view: str, file_list: List[Path
     defines_list += _get_defines(cfg, view)
     regs_list += _get_regs(cfg, view, cfg_path)
         
-    return file_list, defines_list, regs_list
+    return list(set(file_list)), list(set(defines_list)), list(set(regs_list))
 
 def parse_children(ws_path: Path, cfg_path: Path, view: str)-> Tuple[List[str], List[Path], List[str]]:
     
